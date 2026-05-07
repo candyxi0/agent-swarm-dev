@@ -32,6 +32,7 @@ if [ ! -f "$SWARM_CONFIG" ]; then
   _GIT_TOKEN=""
   _MAX_RETRIES=""
   _CHECK_INTERVAL=""
+  MIGRATED_MSG=""
 
   if [ -f "$OLD_ENV" ]; then
     _YUNXIAO_TOKEN=$(grep "^YUNXIAO_TOKEN=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
