@@ -46,9 +46,20 @@ echo "Installed into $TARGET_DIR → $SWARM_DIR"
 echo ""
 
 # --- Interactive configuration ---
+# Derive project name from current directory
+PROJECT_NAME="$(basename "$(pwd)" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_-')"
 ENV_FILE="$SWARM_DIR/.agent-swarm.env"
+
+echo "--- Setup ---"
+echo ""
+echo -n "Project name (SWARM_PROJECT_NAME) [$PROJECT_NAME]: "
+read -r INPUT
+PROJECT_NAME="${INPUT:-$PROJECT_NAME}"
+if [ -n "$PROJECT_NAME" ]; then
+  ENV_FILE="$SWARM_DIR/.agent-swarm-${PROJECT_NAME}.env"
+fi
+
 if [ ! -f "$ENV_FILE" ]; then
-  echo "--- Setup ---"
   echo ""
 
   # SWARM_PROJECT_ROOT (required)
@@ -148,7 +159,7 @@ if [ ! -f "$ENV_FILE" ]; then
 
   # Write env file
   cat > "$ENV_FILE" <<EOF
-# agent-swarm-dev configuration
+# agent-swarm-dev configuration — project: $PROJECT_NAME
 SWARM_PROJECT_ROOT="$SWARM_PROJECT_ROOT"
 YUNXIAO_TOKEN="$YUNXIAO_TOKEN"
 YUNXIAO_ORG_ID="$YUNXIAO_ORG_ID"

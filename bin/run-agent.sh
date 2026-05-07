@@ -14,7 +14,57 @@ set -euo pipefail
 ##############################################################################
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # resolves to ~/agent-swarm-dev/
-SWARM_CONFIG="$SWARM_DIR/.agent-swarm.env"
+
+##############################################################################
+# Auto-detect project config
+# Priority: SWARM_PROJECT_NAME env > match SWARM_PROJECT_ROOT to cwd > fallback
+##############################################################################
+find_project_config() {
+  local cwd="$(pwd)"
+
+  # 1) Explicit project name from env
+  if [ -n "${SWARM_PROJECT_NAME:-}" ]; then
+    local cfg="$SWARM_DIR/.agent-swarm-${SWARM_PROJECT_NAME}.env"
+    if [ -f "$cfg" ]; then echo "$cfg"; return; fi
+  fi
+
+  # 2) Scan all project configs, match by SWARM_PROJECT_ROOT
+  for cfg in "$SWARM_DIR"/.agent-swarm-*.env; do
+    [ -f "$cfg" ] || continue
+    # Extract SWARM_PROJECT_ROOT value (handle quoted strings)
+    local root
+    root=$(grep "^SWARM_PROJECT_ROOT=" "$cfg" 2>/dev/null | head -1 | cut -d= -f2- | sed 's/^"//;s/"$//' || true)
+    if [ -n "$root" ]; then
+      # Resolve to absolute if relative
+      case "$root" in
+        /*) ;;
+        *) root="" ;;
+      esac
+      # Check if cwd is under this project root
+      if [ -n "$root" ] && [[ "$cwd" == "$root"* ]]; then
+        echo "$cfg"
+        return
+      fi
+    fi
+  done
+
+  # 3) Fallback to default (backward compatible)
+  if [ -f "$SWARM_DIR/.agent-swarm.env" ]; then
+    echo "$SWARM_DIR/.agent-swarm.env"
+    return
+  fi
+
+  # No config found
+  echo ""
+}
+
+SWARM_CONFIG="$(find_project_config)"
+
+if [ -z "$SWARM_CONFIG" ]; then
+  echo "Error: No project configuration found."
+  echo "Run 'bash bin/install.sh' inside your project directory first."
+  exit 1
+fi
 
 ##############################################################################
 # Load or create config
