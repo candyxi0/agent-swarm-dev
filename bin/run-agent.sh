@@ -179,10 +179,23 @@ fi
 echo "Creating git worktree: $WORKTREE_PATH (branch: $BRANCH_NAME)"
 cd "$PROJECT_ROOT"
 
-echo "📥 Fetching latest origin/main..."
-git fetch origin main:main 2>/dev/null || true
+# Auto-detect default branch
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || true)
+if [ -z "$DEFAULT_BRANCH" ]; then
+  # Fallback: try master first, then main
+  if git rev-parse --verify origin/master &>/dev/null; then
+    DEFAULT_BRANCH="master"
+  elif git rev-parse --verify origin/main &>/dev/null; then
+    DEFAULT_BRANCH="main"
+  else
+    DEFAULT_BRANCH=$(git branch --format='%(refname:short)' | head -1)
+  fi
+fi
 
-git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" main 2>/dev/null || {
+echo "📥 Fetching latest origin/$DEFAULT_BRANCH..."
+git fetch origin "$DEFAULT_BRANCH:$DEFAULT_BRANCH" 2>/dev/null || echo "(fetch failed, continuing with local branch)"
+
+git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" "$DEFAULT_BRANCH" 2>/dev/null || {
   # Branch might already exist — reuse it
   git worktree add "$WORKTREE_PATH" "$BRANCH_NAME" 2>/dev/null || {
     echo "Error: Could not create worktree. Branch '$BRANCH_NAME' or path '$WORKTREE_PATH' may already exist."
