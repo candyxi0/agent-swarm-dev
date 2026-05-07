@@ -1,0 +1,7 @@
+# Runtime files (auto-created, not tracked)
+.agent-swarm.env
+.swarm-active-tasks.json
+.swarm-monitor.log
+
+# OS
+.DS_Store
