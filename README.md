@@ -6,21 +6,14 @@ and sends notifications via WeCom webhook.
 
 ## Quick Start
 
-### 1. Clone
-
-```bash
-git clone https://github.com/candyxi0/agent-swarm-dev.git
-cd agent-swarm-dev && chmod +x bin/*.sh
-```
-
-### 2. Install into your project
+Navigate to your project, one command to install:
 
 ```bash
 cd /your/project
-/path/to/agent-swarm-dev/bin/install.sh
+curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-### 3. Launch an agent
+Then launch an agent:
 
 ```bash
 # Via skill trigger (in Claude Code)
@@ -78,15 +71,14 @@ agent-swarm-dev/
 
 ## Installation
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/candyxi0/agent-swarm-dev.git
-cd agent-swarm-dev && chmod +x bin/*.sh
+One-line install — just navigate to your project and run:
 
-# 2. Install into your project
+```bash
 cd /your/project
-/path/to/agent-swarm-dev/bin/install.sh
+curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
+
+This clones the repo (if needed) and creates symlinks in `.claude/skills/`.
 
 All files are symlinked — edit the cloned repo once, every project picks up the changes.
 
@@ -188,7 +180,7 @@ The `swarm/` prefix avoids conflicts with your project's existing branches.
 ## Updating
 
 ```bash
-cd /path/to/agent-swarm-dev
+cd ~/agent-swarm-dev
 git pull
 ```
 

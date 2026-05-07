@@ -47,19 +47,11 @@ else
 fi
 ```
 
-If `SWARM_NOT_FOUND`: tell the user to install the skill.
-Clone the repo and run the installer in their project:
-
-```bash
-git clone https://github.com/candyxi0/agent-swarm-dev.git
-cd agent-swarm-dev && chmod +x bin/*.sh
-```
-
-Then in the target project:
+If `SWARM_NOT_FOUND`: tell the user to install the skill:
 
 ```bash
 cd /your/project
-/path/to/agent-swarm-dev/bin/install.sh
+curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
 ## Configuration

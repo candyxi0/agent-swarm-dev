@@ -13,7 +13,7 @@ set -euo pipefail
 # Resolve directories
 ##############################################################################
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # /path/to/agent-swarm-dev/
+SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # resolves to ~/agent-swarm-dev/
 SWARM_CONFIG="$SWARM_DIR/.agent-swarm.env"
 
 ##############################################################################
