@@ -29,6 +29,7 @@ if [ ! -f "$SWARM_CONFIG" ]; then
   _YUNXIAO_SPACE_ID=""
   _YUNXIAO_REPO_ID=""
   _WECOM_WEBHOOK_URL=""
+  _GIT_TOKEN=""
   _MAX_RETRIES=""
   _CHECK_INTERVAL=""
 
@@ -38,6 +39,7 @@ if [ ! -f "$SWARM_CONFIG" ]; then
     _YUNXIAO_SPACE_ID=$(grep "^YUNXIAO_SPACE_ID=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
     _YUNXIAO_REPO_ID=$(grep "^YUNXIAO_REPO_ID=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
     _WECOM_WEBHOOK_URL=$(grep "^WECOM_WEBHOOK_URL=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
+    _GIT_TOKEN=$(grep "^GIT_TOKEN=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
     _MAX_RETRIES=$(grep "^MAX_RETRIES=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
     _CHECK_INTERVAL=$(grep "^CHECK_INTERVAL_MINUTES=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
     MIGRATED_MSG="[agent-swarm] Migrated settings from $OLD_ENV"
@@ -58,6 +60,10 @@ YUNXIAO_REPO_ID="\${YUNXIAO_REPO_ID:-$_YUNXIAO_REPO_ID}"
 
 # WeCom (企业微信) webhook for completion notifications
 WECOM_WEBHOOK_URL="\${WECOM_WEBHOOK_URL:-$_WECOM_WEBHOOK_URL}"
+
+# Git push authentication: "ssh", "token", or "none"
+GIT_AUTH_METHOD="\${GIT_AUTH_METHOD:-ssh}"
+GIT_TOKEN="\${GIT_TOKEN:-$_GIT_TOKEN}"
 
 # Agent tuning
 MAX_RETRIES="\${MAX_RETRIES:-${_MAX_RETRIES:-3}}"
@@ -132,6 +138,29 @@ git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" main 2>/dev/null || {
     exit 1
   }
 }
+
+##############################################################################
+# Configure git authentication inside worktree
+##############################################################################
+cd "$WORKTREE_PATH"
+
+GIT_AUTH_METHOD="${GIT_AUTH_METHOD:-none}"
+case "$GIT_AUTH_METHOD" in
+  token)
+    # Set up credential helper that uses the token
+    git config credential.helper '!f() { echo "username=x-access-token"; echo "password='"$GIT_TOKEN"'"; }; f'
+    git config credential.helperStore '' 2>/dev/null || true
+    ;;
+  ssh)
+    # Use SSH for remote — only affects this worktree
+    if [ -n "${GIT_SSH_KEY:-}" ]; then
+      git config core.sshCommand "ssh -i $GIT_SSH_KEY"
+    fi
+    ;;
+  none)
+    # Rely on system-wide git config (existing SSH key, credential helper, etc.)
+    ;;
+esac
 
 ##############################################################################
 # Build the agent prompt

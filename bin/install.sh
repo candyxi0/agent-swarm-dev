@@ -90,6 +90,53 @@ if [ ! -f "$ENV_FILE" ]; then
   read -r WECOM_WEBHOOK_URL
   WECOM_WEBHOOK_URL="${WECOM_WEBHOOK_URL:-}"
 
+  # Git authentication
+  echo ""
+  echo "Git push authentication — how agents authenticate when pushing:"
+  echo "  1) SSH key (default)"
+  echo "  2) Personal Access Token"
+  echo "  3) Skip (use existing git config)"
+  echo -n "  Choose [1]: "
+  read -r INPUT
+  GIT_AUTH_METHOD="${INPUT:-1}"
+
+  GIT_TOKEN=""
+  GIT_SSH_KEY=""
+  case "$GIT_AUTH_METHOD" in
+    2)
+      echo -n "  GIT_TOKEN (GitHub/GitLab token): "
+      read -r GIT_TOKEN
+      GIT_TOKEN="${GIT_TOKEN:-}"
+      GIT_AUTH_METHOD="token"
+      ;;
+    1|*)
+      # Check if SSH key exists, if not offer to guide
+      if [ ! -f ~/.ssh/id_ed25519 ] && [ ! -f ~/.ssh/id_rsa ]; then
+        echo ""
+        echo "  No SSH key found (~/.ssh/id_ed25519 or id_rsa)."
+        echo -n "  Generate one now? (y/N): "
+        read -r INPUT
+        case "$INPUT" in
+          y|Y)
+            echo "  Generating SSH key..."
+            ssh-keygen -t ed25519 -C "agent-swarm-dev" -f ~/.ssh/id_ed25519 -N "" -q
+            echo "  SSH key generated at ~/.ssh/id_ed25519"
+            echo "  Remember to add your public key to your Git hosting:"
+            echo "    cat ~/.ssh/id_ed25519.pub"
+            ;;
+          *)
+            GIT_AUTH_METHOD="ssh"
+            ;;
+        esac
+      else
+        GIT_AUTH_METHOD="ssh"
+      fi
+      ;;
+    3)
+      GIT_AUTH_METHOD="none"
+      ;;
+  esac
+
   # Retry & interval
   echo ""
   echo -n "Max retries (MAX_RETRIES) [3]: "
@@ -108,6 +155,8 @@ YUNXIAO_ORG_ID="$YUNXIAO_ORG_ID"
 YUNXIAO_SPACE_ID="$YUNXIAO_SPACE_ID"
 YUNXIAO_REPO_ID="$YUNXIAO_REPO_ID"
 WECOM_WEBHOOK_URL="$WECOM_WEBHOOK_URL"
+GIT_AUTH_METHOD="$GIT_AUTH_METHOD"
+GIT_TOKEN="$GIT_TOKEN"
 MAX_RETRIES="$MAX_RETRIES"
 CHECK_INTERVAL_MINUTES="$CHECK_INTERVAL_MINUTES"
 EOF
