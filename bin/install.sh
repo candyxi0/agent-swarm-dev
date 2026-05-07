@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/candyxi0/agent-swarm-dev.git"
+REPO_URL="https://kkgithub.com/candyxi0/agent-swarm-dev.git"
 BRANCH="main"
 SWARM_DIR="$HOME/agent-swarm-dev"
 
