@@ -39,6 +39,20 @@ triggers:
   - 启动多 agent
   - 编码 agent
   - 开启编码代理
+  - check agents
+  - check agent status
+  - agent status
+  - swarm status
+  - list agents
+  - show agents
+  - view active tasks
+  - 查看 agent 状态
+  - 查看小蜜蜂状态
+  - 查看任务状态
+  - 查看活跃任务
+  - 检查 agent 状态
+  - agent 状态
+  - 任务状态
 allowed-tools:
   - Bash
   - Read

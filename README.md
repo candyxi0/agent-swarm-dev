@@ -29,9 +29,15 @@ Just tell your AI assistant "launch a coding bee".
 
 ### 📋 Check Status
 
+**Via script:**
+
 ```bash
 ./agent-swarm-dev/bin/check-agents.sh
 ```
+
+**Via SKILL:**
+
+Just tell your AI assistant "check agents" or "swarm status".
 
 ## 🧠 How It Works
 
