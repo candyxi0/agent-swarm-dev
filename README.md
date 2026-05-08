@@ -21,6 +21,8 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 ./agent-swarm-dev/bin/run-agent.sh feat-login "implement user login"
 ```
 
+Or say "launch a coding bee" if using an AI assistant that supports skills.
+
 ### 📋 Check Status
 
 ```bash
