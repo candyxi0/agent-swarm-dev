@@ -12,7 +12,7 @@
 
 ```bash
 cd /你的项目
-curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
+curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
 ### 🎯 启动 Agent
@@ -25,7 +25,9 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 
 **SKILL 启动：**
 
+```bash
 直接跟你的 AI 助手说「启动小蜜蜂」即可。
+```
 
 ### 📋 查看状态
 
@@ -85,7 +87,7 @@ agent-swarm-dev/
 
 ```bash
 cd /你的项目
-curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
+curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
 会自动 clone 仓库（如果还没有的话），然后在 `.claude/skills/` 创建符号链接。改一次代码，所有项目跟着一起更新，省心~
