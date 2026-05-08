@@ -71,8 +71,12 @@ All scripts are self-contained in this skill. No external project dependencies.
 # Derive the skill directory dynamically from the symlink location
 if [ -L "${CLAUDE_SKILL_DIR:-.}/SKILL.md" ]; then
   SWARM_DIR="$(cd "$CLAUDE_SKILL_DIR" && pwd)"
+elif [ -L ".openclaw/skills/agent-swarm-dev/SKILL.md" ]; then
+  SWARM_DIR="$(cd ".openclaw/skills/agent-swarm-dev" && pwd -P)"
 elif [ -L ".claude/skills/agent-swarm-dev/SKILL.md" ]; then
   SWARM_DIR="$(cd ".claude/skills/agent-swarm-dev" && pwd -P)"
+elif [ -d "$HOME/.openclaw/skills/agent-swarm-dev" ]; then
+  SWARM_DIR="$(cd "$HOME/.openclaw/skills/agent-swarm-dev" && pwd -P)"
 elif [ -d "$HOME/.claude/skills/agent-swarm-dev" ]; then
   SWARM_DIR="$(cd "$HOME/.claude/skills/agent-swarm-dev" && pwd -P)"
 else

@@ -33,7 +33,44 @@ if ! git rev-parse --git-dir &>/dev/null; then
   echo ""
 fi
 
-TARGET_DIR=".claude/skills/agent-swarm-dev"
+# --- Detect platform skill directory ---
+detect_skill_dir() {
+  # Priority: OpenClaw > Claude Code > ask user
+  if [ -d ".openclaw/skills" ]; then
+    echo ".openclaw/skills/agent-swarm-dev"
+    return
+  fi
+  if [ -d ".claude/skills" ]; then
+    echo ".claude/skills/agent-swarm-dev"
+    return
+  fi
+
+  # Neither exists — ask user
+  echo "Which AI platform are you using?"
+  echo "  1) OpenClaw"
+  echo "  2) Claude Code"
+  echo "  3) Other (specify directory)"
+  echo -n "  Choose [1]: "
+  read -r INPUT
+  case "$INPUT" in
+    1)
+      echo ".openclaw/skills/agent-swarm-dev"
+      ;;
+    2)
+      echo ".claude/skills/agent-swarm-dev"
+      ;;
+    3)
+      echo -n "  Skill directory path: "
+      read -r CUSTOM_DIR
+      echo "$CUSTOM_DIR/agent-swarm-dev"
+      ;;
+    *)
+      echo ".openclaw/skills/agent-swarm-dev"
+      ;;
+  esac
+}
+
+TARGET_DIR="$(detect_skill_dir)"
 mkdir -p "$TARGET_DIR"
 
 # Symlink SKILL.md
@@ -195,4 +232,4 @@ else
 fi
 
 echo ""
-echo "In Claude Code, say 'launch an agent' to use /agent-swarm-dev"
+echo "Setup complete. Say '启动小蜜蜂' or 'launch a coding bee' to use agent-swarm-dev."
