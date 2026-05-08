@@ -174,6 +174,22 @@ EOF
 
   echo ""
   echo "Config saved to $ENV_FILE"
+
+  # Cron setup (optional)
+  echo ""
+  echo "Auto cleanup of merged branches — schedule a periodic sweep?"
+  echo -n "  Install cron job? (y/N): "
+  read -r INPUT
+  case "$INPUT" in
+    y|Y)
+      echo -n "  Schedule (minutes) [*/5]: "
+      read -r CRON_MIN
+      CRON_MINUTES="${CRON_MIN:-*/5}" "$SWARM_DIR/bin/setup-cron.sh" --install 2>/dev/null || echo "  (setup failed, you can install manually later)"
+      ;;
+    *)
+      echo "  Skipped. Run './agent-swarm-dev/bin/setup-cron.sh --install' anytime."
+      ;;
+  esac
 else
   echo "Config already exists at $ENV_FILE"
 fi
