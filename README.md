@@ -17,11 +17,25 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 
 ### 🎯 Launch an Agent
 
-Just tell your AI assistant `launch a coding bee`.
+Just tell your AI assistant:
+
+```
+launch a coding bee
+```
 
 ### 📋 Check Status
 
-Just tell your AI assistant `check agents` or `swarm status`.
+Just tell your AI assistant:
+
+```
+check agents
+```
+
+or
+
+```
+swarm status
+```
 
 ## 🧠 How It Works
 
