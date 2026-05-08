@@ -104,8 +104,8 @@ if [ ! -f "$ENV_FILE" ]; then
   # Git authentication
   echo ""
   echo "Git push authentication — how agents authenticate when pushing:"
-  echo "  1) SSH key (default)"
-  echo "  2) Personal Access Token"
+  echo "  1) Personal Access Token (recommended)"
+  echo "  2) SSH key"
   echo "  3) Skip (use existing git config)"
   echo -n "  Choose [1]: "
   read -r INPUT
@@ -114,13 +114,13 @@ if [ ! -f "$ENV_FILE" ]; then
   GIT_TOKEN=""
   GIT_SSH_KEY=""
   case "$GIT_AUTH_METHOD" in
-    2)
-      echo -n "  GIT_TOKEN (GitHub/GitLab token): "
+    1|*)
+      echo -n "  GIT_TOKEN (GitHub/GitLab/云效 token): "
       read -r GIT_TOKEN
       GIT_TOKEN="${GIT_TOKEN:-}"
       GIT_AUTH_METHOD="token"
       ;;
-    1|*)
+    2)
       # Check if SSH key exists, if not offer to guide
       if [ ! -f ~/.ssh/id_ed25519 ] && [ ! -f ~/.ssh/id_rsa ]; then
         echo ""

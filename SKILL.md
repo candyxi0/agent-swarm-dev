@@ -70,11 +70,13 @@ vim "$SWARM_DIR/.agent-swarm.env"
 | `YUNXIAO_SPACE_ID` | (empty) | 云效 space ID |
 | `YUNXIAO_REPO_ID` | (empty) | 云效 repo ID |
 | `WECOM_WEBHOOK_URL` | (empty) | 企业微信 webhook for notifications |
+| `GIT_AUTH_METHOD` | `token` | Git push auth: `token` (uses GIT_TOKEN), `ssh`, or `none` |
+| `GIT_TOKEN` | (empty) | Personal Access Token for git push (used when GIT_AUTH_METHOD=token) |
 | `MAX_RETRIES` | `3` | Max retry attempts |
 | `CHECK_INTERVAL_MINUTES` | `2` | Status check interval |
 
-**Minimal setup**: just set `SWARM_PROJECT_ROOT` to your git repo path. Notifications
-and YunXiao are optional — agents work without them.
+**Minimal setup**: set `SWARM_PROJECT_ROOT` to your git repo path. If using token
+auth (default), also set `GIT_TOKEN`. Notifications and YunXiao are optional.
 
 ## Core Command
 

@@ -113,7 +113,7 @@ YUNXIAO_REPO_ID="\${YUNXIAO_REPO_ID:-$_YUNXIAO_REPO_ID}"
 WECOM_WEBHOOK_URL="\${WECOM_WEBHOOK_URL:-$_WECOM_WEBHOOK_URL}"
 
 # Git push authentication: "ssh", "token", or "none"
-GIT_AUTH_METHOD="\${GIT_AUTH_METHOD:-ssh}"
+GIT_AUTH_METHOD="\${GIT_AUTH_METHOD:-token}"
 GIT_TOKEN="\${GIT_TOKEN:-$_GIT_TOKEN}"
 
 # Agent tuning
@@ -281,7 +281,8 @@ sleep 10
 
 if [[ -d "\$WORKTREE" ]]; then
   cd "\$WORKTREE"
-  COMMITS=\$(git log --oneline origin/main..\$BRANCH 2>/dev/null | wc -l)
+  DEFAULT_BRANCH="${DEFAULT_BRANCH:-master}"
+  COMMITS=\$(git log --oneline "origin/\$DEFAULT_BRANCH"..\$BRANCH 2>/dev/null | wc -l)
   UNPUSHED=\$(git log --oneline \$BRANCH --not --remotes 2>/dev/null | wc -l)
 
   log "📊 Branch: \$BRANCH | Commits: \$COMMITS | Unpushed: \$UNPUSHED"
