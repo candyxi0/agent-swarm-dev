@@ -17,16 +17,16 @@ curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh |
 
 ### 🎯 启动 Agent
 
-**脚本启动：**
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-login "实现用户登录功能"
-```
-
 **SKILL 启动：**
 
 ```bash
 直接跟你的 AI 助手说「启动小蜜蜂」即可。
+```
+
+**脚本启动：**
+
+```bash
+./agent-swarm-dev/bin/run-agent.sh feat-login "实现用户登录功能"
 ```
 
 ### 📋 查看状态
