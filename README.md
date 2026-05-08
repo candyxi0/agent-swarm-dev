@@ -90,7 +90,7 @@ This clones the repo (if needed) and creates symlinks in the platform's skills d
 
 ## ⚙️ Configuration
 
-First run auto-creates `.agent-swarm.env` in your project directory. You can edit it:
+First run auto-creates `.agent-swarm-<project-name>.env` in your project directory. You can edit it:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|

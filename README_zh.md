@@ -84,7 +84,7 @@ curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh |
 
 ## ⚙️ 配置说明
 
-首次运行会自动在项目目录创建 `.agent-swarm.env`。你也可以手动编辑：
+首次运行会自动在项目目录创建 `.agent-swarm-你的项目名.env`。你也可以手动编辑：
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
