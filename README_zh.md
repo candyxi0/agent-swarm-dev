@@ -17,31 +17,11 @@ curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh |
 
 ### 🎯 启动 Agent
 
-**SKILL 启动：**
-
-```bash
-启动小蜜蜂
-```
-
-**脚本启动：**
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-login "实现用户登录功能"
-```
+直接跟你的 AI 助手说「启动小蜜蜂」。
 
 ### 📋 查看状态
 
-**SKILL 查看：**
-
-```bash
-查看小蜜蜂状态
-```
-
-**脚本查看：**
-
-```bash
-./agent-swarm-dev/bin/check-agents.sh
-```
+直接跟你的 AI 助手说「查看小蜜蜂状态」。
 
 ## 🧠 工作原理
 
