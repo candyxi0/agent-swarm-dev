@@ -193,9 +193,9 @@ if [ -z "$DEFAULT_BRANCH" ]; then
 fi
 
 echo "📥 Fetching latest origin/$DEFAULT_BRANCH..."
-git fetch origin "$DEFAULT_BRANCH:$DEFAULT_BRANCH" 2>/dev/null || echo "(fetch failed, continuing with local branch)"
+git fetch origin "$DEFAULT_BRANCH" 2>/dev/null || echo "(fetch failed, continuing with local branch)"
 
-git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" "$DEFAULT_BRANCH" 2>/dev/null || {
+git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" "origin/$DEFAULT_BRANCH" 2>/dev/null || {
   # Branch might already exist — reuse it
   git worktree add "$WORKTREE_PATH" "$BRANCH_NAME" 2>/dev/null || {
     echo "Error: Could not create worktree. Branch '$BRANCH_NAME' or path '$WORKTREE_PATH' may already exist."
