@@ -2,7 +2,9 @@
 
 > Your little coding bees, working in parallel, minding their own hives ✨
 
-Launch isolated coding agents (Claude Code) in git worktrees, each in its own tmux session. Agents code, commit, and push independently. A background monitor watches for completion and sends notifications via WeCom webhook. 🎉
+Launch isolated coding agents in git worktrees, each in its own tmux session. Agents code, commit, and push independently. A background monitor watches for completion and sends notifications via WeCom webhook. 🎉
+
+Works with Claude Code, OpenClaw, Codex, and any AI coding assistant that supports skills.
 
 ## 🚀 Quick Start
 
@@ -16,17 +18,13 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 ### 🎯 Launch an Agent
 
 ```bash
-# Via Claude Code skill
-# Just say: "launch an agent to implement login"
-
-# Or run directly
-.claude/skills/agent-swarm-dev/bin/run-agent.sh feat-login "实现用户登录功能"
+./agent-swarm-dev/bin/run-agent.sh feat-login "implement user login"
 ```
 
 ### 📋 Check Status
 
 ```bash
-.claude/skills/agent-swarm-dev/bin/check-agents.sh
+./agent-swarm-dev/bin/check-agents.sh
 ```
 
 ## 🧠 How It Works
@@ -35,13 +33,11 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 ┌─────────────────────────────────────────────────────────────────┐
 │                      🐝 agent-swarm-dev 🐝                      │
 │                                                                  │
-│  You say: "launch an agent to implement login"                   │
-│       ↓                                                          │
-│  Claude Code → bin/run-agent.sh                                  │
+│  You run: bin/run-agent.sh feat-login "implement login"          │
 │       ↓                                                          │
 │  1. 🏗️  git worktree spins up an isolated workspace              │
 │  2. 📺  tmux creates a background session                        │
-│  3. 🤖  claude --print codes inside                              │
+│  3. 🤖  AI assistant codes inside                                 │
 │  4. 👀  background monitor polls tmux status every 5s            │
 │  5. 🎉 completion → check git → WeCom notify → tidy up           │
 └─────────────────────────────────────────────────────────────────┘
@@ -104,13 +100,13 @@ First run auto-creates `.agent-swarm.env` inside the skill directory. You can ed
 ### Single Agent
 
 ```bash
-.claude/skills/agent-swarm-dev/bin/run-agent.sh <task-id> "<prompt>"
+./agent-swarm-dev/bin/run-agent.sh <task-id> "<prompt>"
 ```
 
 Example:
 
 ```bash
-.claude/skills/agent-swarm-dev/bin/run-agent.sh feat-user-api "实现用户CRUD API"
+./agent-swarm-dev/bin/run-agent.sh feat-user-api "implement user CRUD API"
 ```
 
 Watch in real-time:
@@ -130,13 +126,13 @@ tmux kill-session -t swarm-feat-user-api
 ```bash
 cat > /tmp/tasks.json << 'EOF'
 [
-  {"id": "feat-api",    "prompt": "实现用户CRUD API"},
-  {"id": "feat-auth",   "prompt": "实现JWT认证中间件"},
-  {"id": "feat-db",     "prompt": "实现数据库模型和迁移"}
+  {"id": "feat-api",    "prompt": "implement user CRUD API"},
+  {"id": "feat-auth",   "prompt": "implement JWT auth middleware"},
+  {"id": "feat-db",     "prompt": "implement database models and migrations"}
 ]
 EOF
 
-.claude/skills/agent-swarm-dev/bin/swarm.sh /tmp/tasks.json
+./agent-swarm-dev/bin/swarm.sh /tmp/tasks.json
 ```
 
 All agents launch in parallel, each in its own worktree. No interference~
@@ -144,7 +140,7 @@ All agents launch in parallel, each in its own worktree. No interference~
 ### 🛑 Stop an Agent
 
 ```bash
-.claude/skills/agent-swarm-dev/bin/stop-agent.sh <task-id>
+./agent-swarm-dev/bin/stop-agent.sh <task-id>
 ```
 
 Terminates the tmux session, updates task status to `stopped` (record preserved for tracing).
@@ -152,7 +148,7 @@ Terminates the tmux session, updates task status to `stopped` (record preserved 
 ### 📋 Check All Agent Statuses
 
 ```bash
-.claude/skills/agent-swarm-dev/bin/check-agents.sh
+./agent-swarm-dev/bin/check-agents.sh
 ```
 
 Shows all active tasks, tmux sessions, and latest monitor logs.
@@ -163,10 +159,10 @@ After an agent pushes its branch is preserved (so you can create an MR). Once me
 
 ```bash
 # Preview what would be cleaned
-.claude/skills/agent-swarm-dev/bin/cleanup-merged.sh --dry-run
+./agent-swarm-dev/bin/cleanup-merged.sh --dry-run
 
 # Actually do it
-.claude/skills/agent-swarm-dev/bin/cleanup-merged.sh
+./agent-swarm-dev/bin/cleanup-merged.sh
 ```
 
 Scans all `swarm/*` branches and cleans up merged ones — branches, worktrees, and task records in one go~
@@ -177,35 +173,26 @@ Don't want to remember? Set up a daily cron job to auto-sweep:
 
 ```bash
 # Install cron (defaults to every 5 minutes)
-.claude/skills/agent-swarm-dev/bin/setup-cron.sh --install
+./agent-swarm-dev/bin/setup-cron.sh --install
 
 # Uninstall
-.claude/skills/agent-swarm-dev/bin/setup-cron.sh --uninstall
+./agent-swarm-dev/bin/setup-cron.sh --uninstall
 
 # Check status
-.claude/skills/agent-swarm-dev/bin/setup-cron.sh --status
+./agent-swarm-dev/bin/setup-cron.sh --status
 ```
 
 Cleanup logs land in `.swarm-cleanup.log` for you to peek at anytime~
-
-### 🤖 Trigger via Skill
-
-After installation, trigger agent-swarm-dev in Claude Code by saying any of these:
-
-- "launch an agent"
-- "start a coding agent"
-- "launch swarm agent"
 
 ## 📦 Dependencies
 
 - `git` — for worktree isolation
 - `tmux` — for session management
 - `jq` — for JSON task tracking
-- `claude` (Claude Code CLI) — the coding agent
+- `claude` (Claude Code CLI) or any compatible AI coding assistant
 
 ```bash
 apt-get install -y jq tmux
-# Claude Code: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
 ```
 
 ## 🔄 Task Lifecycle
