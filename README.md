@@ -86,11 +86,11 @@ cd /your/project
 curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-This clones the repo (if needed) and creates symlinks in `.claude/skills/`. All files are symlinked — edit the cloned repo once, every project picks up the changes automatically.
+This clones the repo (if needed) and creates symlinks in the platform's skills directory (`.openclaw/skills/` or `.claude/skills/`). All files are symlinked — edit the cloned repo once, every project picks up the changes automatically.
 
 ## ⚙️ Configuration
 
-First run auto-creates `.agent-swarm.env` inside the skill directory. You can edit it:
+First run auto-creates `.agent-swarm.env` in your project directory. You can edit it:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|

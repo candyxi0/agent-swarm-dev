@@ -80,11 +80,11 @@ cd /你的项目
 curl -fsSL https://raw.github.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-会自动 clone 仓库（如果还没有的话），然后在 `.claude/skills/` 创建符号链接。改一次代码，所有项目跟着一起更新，省心~
+会自动 clone 仓库（如果还没有的话），然后在对应平台的 skills 目录（`.openclaw/skills/` 或 `.claude/skills/`）创建符号链接。改一次代码，所有项目跟着一起更新，省心~
 
 ## ⚙️ 配置说明
 
-首次运行会自动创建 `.agent-swarm.env`（在 skill 目录下）。你也可以手动编辑：
+首次运行会自动在项目目录创建 `.agent-swarm.env`。你也可以手动编辑：
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
