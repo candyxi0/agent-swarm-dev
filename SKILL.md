@@ -129,7 +129,9 @@ If the user's intent doesn't match any of the above, show a brief summary of wha
 First run auto-creates `$SWARM_DIR/.agent-swarm.env`. Edit it:
 
 ```bash
-vim "$SWARM_DIR/.agent-swarm.env"
+vim .agent-swarm.env          # project-local config (in your project root)
+# or
+vim .agent-swarm-<name>.env   # named config for this project
 ```
 
 | Variable | Default | Purpose |
@@ -174,7 +176,7 @@ tmux kill-session -t swarm-feat-login
 
 ## What run-agent.sh Does
 
-1. **Loads** config from `$SWARM_DIR/.agent-swarm.env` (auto-creates on first run)
+1. **Loads** project-local config from `.agent-swarm.env` in current directory (falls back to `$SWARM_DIR/.agent-swarm.env`)
 2. **Resolves** project root from `SWARM_PROJECT_ROOT` (defaults to `.`)
 3. **Creates** git worktree at `$PROJECT_ROOT/.swarm-worktrees/<task-id>` on branch `swarm/<task-id>` from `main`
 4. **Fetches** latest `origin/main`

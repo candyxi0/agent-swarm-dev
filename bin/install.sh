@@ -83,9 +83,10 @@ echo "Installed into $TARGET_DIR → $SWARM_DIR"
 echo ""
 
 # --- Interactive configuration ---
-# Derive project name from current directory
-PROJECT_NAME="$(basename "$(pwd)" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_-')"
-ENV_FILE="$SWARM_DIR/.agent-swarm.env"
+# Derive project name from current directory and use it as project root
+PROJECT_DIR="$(pwd)"
+PROJECT_NAME="$(basename "$PROJECT_DIR" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_-')"
+ENV_FILE="$PROJECT_DIR/.agent-swarm.env"
 
 echo "--- Setup ---"
 echo ""
@@ -93,7 +94,7 @@ echo -n "Project name (SWARM_PROJECT_NAME) [$PROJECT_NAME]: "
 read -r INPUT
 PROJECT_NAME="${INPUT:-$PROJECT_NAME}"
 if [ -n "$PROJECT_NAME" ]; then
-  ENV_FILE="$SWARM_DIR/.agent-swarm-${PROJECT_NAME}.env"
+  ENV_FILE="$PROJECT_DIR/.agent-swarm-${PROJECT_NAME}.env"
 fi
 
 if [ ! -f "$ENV_FILE" ]; then

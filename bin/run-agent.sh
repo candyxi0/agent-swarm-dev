@@ -4,8 +4,9 @@
 # Usage: run-agent.sh <task-id> <prompt>
 # Example: run-agent.sh feat-login "实现用户登录功能"
 #
-# Configuration: reads from <script-dir>/.agent-swarm.env
-# If .agent-swarm.env doesn't exist, creates it from defaults on first run.
+# Configuration: reads .agent-swarm*.env from current directory (project-local),
+# or falls back to <script-dir>/.agent-swarm.env for backward compatibility.
+# If no config exists, creates a default one on first run.
 
 set -euo pipefail
 
@@ -17,44 +18,58 @@ SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # resolves to ~/agent-swarm-d
 
 ##############################################################################
 # Auto-detect project config
-# Priority: SWARM_PROJECT_NAME env > match SWARM_PROJECT_ROOT to cwd > fallback
+# Priority: SWARM_PROJECT_NAME env > project-local config > scan parents > swarm dir fallback
 ##############################################################################
 find_project_config() {
   local cwd="$(pwd)"
 
-  # 1) Explicit project name from env
+  # 1) Explicit project name from env — check project root first, then swarm dir
   if [ -n "${SWARM_PROJECT_NAME:-}" ]; then
-    local cfg="$SWARM_DIR/.agent-swarm-${SWARM_PROJECT_NAME}.env"
-    if [ -f "$cfg" ]; then echo "$cfg"; return; fi
+    local cfg_name=".agent-swarm-${SWARM_PROJECT_NAME}.env"
+    if [ -f "$cwd/$cfg_name" ]; then echo "$cwd/$cfg_name"; return; fi
+    if [ -f "$SWARM_DIR/$cfg_name" ]; then echo "$SWARM_DIR/$cfg_name"; return; fi
   fi
 
-  # 2) Scan all project configs, match by SWARM_PROJECT_ROOT
+  # 2) Look for project-local config in current directory
+  if [ -f "$cwd/.agent-swarm.env" ]; then echo "$cwd/.agent-swarm.env"; return; fi
+  for cfg in "$cwd"/.agent-swarm-*.env; do
+    [ -f "$cfg" ] || continue
+    echo "$cfg"
+    return
+  done
+
+  # 3) Scan parent directories up to root (for nested worktrees)
+  local dir="$cwd"
+  while [ "$dir" != "/" ]; do
+    for cfg in "$dir"/.agent-swarm-*.env "$dir"/.agent-swarm.env; do
+      [ -f "$cfg" ] || continue
+      echo "$cfg"
+      return
+    done
+    dir="$(dirname "$dir")"
+  done
+
+  # 4) Fall back to swarm dir configs (backward compatible)
   for cfg in "$SWARM_DIR"/.agent-swarm-*.env; do
     [ -f "$cfg" ] || continue
-    # Extract SWARM_PROJECT_ROOT value (handle quoted strings)
     local root
     root=$(grep "^SWARM_PROJECT_ROOT=" "$cfg" 2>/dev/null | head -1 | cut -d= -f2- | sed 's/^"//;s/"$//' || true)
     if [ -n "$root" ]; then
-      # Resolve to absolute if relative
       case "$root" in
         /*) ;;
         *) root="" ;;
       esac
-      # Check if cwd is under this project root
       if [ -n "$root" ] && [[ "$cwd" == "$root"* ]]; then
         echo "$cfg"
         return
       fi
     fi
   done
-
-  # 3) Fallback to default (backward compatible)
   if [ -f "$SWARM_DIR/.agent-swarm.env" ]; then
     echo "$SWARM_DIR/.agent-swarm.env"
     return
   fi
 
-  # No config found
   echo ""
 }
 
