@@ -94,7 +94,33 @@ cd /your/project
 curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-## Configuration
+## Routing
+
+After SETUP above, determine what the user wants:
+
+- **Check status / view agents** — if the user asks about agent status, active tasks, swarm status, or 查看状态/查看小蜜蜂:
+  ```bash
+  "$SWARM_DIR/bin/check-agents.sh"
+  ```
+  Also show `jq '.' "$SWARM_DIR/.swarm-active-tasks.json"` if check-agents.sh fails.
+
+- **Launch a new agent** — if the user wants to start a coding agent, create a task, or 启动agent/启动小蜜蜂:
+  1. Ask the user for the task ID and what to implement (unless already provided)
+  2. Run `"$SWARM_DIR/bin/run-agent.sh" <task-id> "<prompt>"`
+
+- **Stop an agent** — if the user wants to stop/kill an agent:
+  1. Ask which task-id
+  2. Run `"$SWARM_DIR/bin/stop-agent.sh" <task-id>`
+
+- **Batch launch** — if the user wants multiple agents in parallel:
+  1. Ask for the list of tasks
+  2. Write them to a JSON file and run `"$SWARM_DIR/bin/swarm.sh" <json-file>`
+
+- **Cleanup** — if the user wants to clean up merged branches:
+  1. Run `"$SWARM_DIR/bin/cleanup-merged.sh" --dry-run` first
+  2. Show results and ask before running without `--dry-run`
+
+If the user's intent doesn't match any of the above, show a brief summary of what this skill can do.
 
 First run auto-creates `$SWARM_DIR/.agent-swarm.env`. Edit it:
 
