@@ -6,13 +6,39 @@ description: |
   automatic monitoring, and completion notifications via WeCom webhook. All scripts
   are self-contained in this skill — no external dependencies. Use when asked
   to "run an agent", "start a coding agent", "launch a swarm agent", "create an agent",
-  "spin up a worktree", or manage multi-agent coding workflows. (agent-swarm-dev)
+  "spin up a worktree", "启动agent", "启动编码agent", or manage multi-agent coding workflows. (agent-swarm-dev)
 triggers:
   - run an agent
   - start a coding agent
   - launch swarm agent
   - create agent task
   - start worktree agent
+  - launch an agent
+  - launch a coding agent
+  - launch swarm
+  - start an agent
+  - run a coding agent
+  - start a swarm agent
+  - launch worktree agent
+  - start a coding bee
+  - coding agent
+  - swarm agent
+  - worktree agent
+  - multi-agent
+  - parallel agent
+  - 启动 agent
+  - 启动一个 agent
+  - 启动编码 agent
+  - 启动 swarm agent
+  - 启动小蜜蜂
+  - 启动 worktree agent
+  - 运行 agent
+  - 运行一个 agent
+  - 创建 agent 任务
+  - 启动并行 agent
+  - 启动多 agent
+  - 编码 agent
+  - 开启编码代理
 allowed-tools:
   - Bash
   - Read
