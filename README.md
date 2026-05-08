@@ -2,9 +2,9 @@
 
 > Your little coding bees, working in parallel, minding their own hives ✨
 
-Launch isolated coding agents in git worktrees, each in its own tmux session. Agents code, commit, and push independently. A background monitor watches for completion and sends notifications via WeCom webhook. 🎉
+Launch isolated coding agents (Claude Code) in git worktrees, each in its own tmux session. Agents code, commit, and push independently. A background monitor watches for completion and sends notifications via WeCom webhook. 🎉
 
-Works with Claude Code, OpenClaw, Codex, and any AI coding assistant that supports skills.
+Dispatch from Claude Code, OpenClaw, Codex, or any AI assistant that supports skills — the coding agents themselves always run Claude Code.
 
 ## 🚀 Quick Start
 
@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 │       ↓                                                          │
 │  1. 🏗️  git worktree spins up an isolated workspace              │
 │  2. 📺  tmux creates a background session                        │
-│  3. 🤖  AI assistant codes inside                                 │
+│  3. 🤖  Claude Code codes inside                                  │
 │  4. 👀  background monitor polls tmux status every 5s            │
 │  5. 🎉 completion → check git → WeCom notify → tidy up           │
 └─────────────────────────────────────────────────────────────────┘
@@ -189,7 +189,7 @@ Cleanup logs land in `.swarm-cleanup.log` for you to peek at anytime~
 - `git` — for worktree isolation
 - `tmux` — for session management
 - `jq` — for JSON task tracking
-- `claude` (Claude Code CLI) or any compatible AI coding assistant
+- `claude` (Claude Code CLI) — the coding agent
 
 ```bash
 apt-get install -y jq tmux
