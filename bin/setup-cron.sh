@@ -29,7 +29,7 @@ detect_project_root() {
   fi
 }
 
-CRON_MINUTES="${CRON_MINUTES:-30}"
+CRON_MINUTES="${CRON_MINUTES:-*/5}"
 CRON_HOUR="${CRON_HOUR:-2}"
 
 crontab_line="$CRON_MINUTES $CRON_HOUR * * * SWARM_PROJECT_ROOT=\"$(detect_project_root)\" $CLEANUP_SCRIPT >> \"$SWARM_DIR/.swarm-cleanup.log\" 2>&1 $CRON_TAG"

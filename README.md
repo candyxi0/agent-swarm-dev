@@ -176,7 +176,7 @@ Scans all `swarm/*` branches and cleans up merged ones — branches, worktrees, 
 Don't want to remember? Set up a daily cron job to auto-sweep:
 
 ```bash
-# Install cron (defaults to 2:30 AM daily)
+# Install cron (defaults to every 5 minutes)
 .claude/skills/agent-swarm-dev/bin/setup-cron.sh --install
 
 # Uninstall
