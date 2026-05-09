@@ -19,7 +19,7 @@ SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # resolves to ~/agent-swarm-d
 ##############################################################################
 # Check if current directory is a git repo; if not, clone one
 ##############################################################################
-if ! git rev-parse --git-dir &>/dev/null; then
+if [ ! -d ".git" ]; then
   echo "当前目录不是 git 仓库。"
   echo -n "请输入 Git 仓库地址: "
   read -r GIT_CLONE_URL

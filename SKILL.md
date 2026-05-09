@@ -98,13 +98,17 @@ echo "SWARM_READY"
 
 ### Step 2: Detect git repo + config, create if needed
 
-If `SWARM_READY` above, run the following detection flow:
+If `SWARM_READY` above, run the following detection flow.
+
+**CRITICAL**: Only check the current working directory (`$(pwd)`). Never scan parent directories, never fall back to other projects. The flow must strictly follow:
 
 ```bash
-# Check if current directory is a git repo
-if git rev-parse --git-dir &>/dev/null; then
+CWD="$(pwd)"
+
+# Check if current directory ITSELF is a git repo (not a parent)
+if [ -d "$CWD/.git" ]; then
   IS_GIT_REPO="yes"
-  PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+  PROJECT_ROOT="$CWD"
   # Derive project name from git remote
   REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
   if [ -n "$REMOTE_URL" ]; then
@@ -127,12 +131,12 @@ echo "PROJECT_NAME=$PROJECT_NAME"
 ```
 
 **If `IS_GIT_REPO=no`**: The current directory is not a git repository.
-1. Ask the user: "当前目录不是一个 git 仓库，请提供一个仓库地址（或指定本地已克隆的路径）"
+1. Ask the user: "当前目录不是一个 git 仓库，请提供一个仓库地址"
 2. Use `git clone <url>` to clone the repo into the current directory
 3. Set `PROJECT_ROOT` to the newly cloned directory path and `cd` into it
 4. Derive `PROJECT_NAME` from the repo name as above
 
-**If `IS_GIT_REPO=yes`**: Check for existing config in the project root only:
+**If `IS_GIT_REPO=yes`**: Check for config in the current directory ONLY — no parent scanning:
 
 ```bash
 CONFIG_FILE="$PROJECT_ROOT/.agent-swarm-${PROJECT_NAME}.env"
