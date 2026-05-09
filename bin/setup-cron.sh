@@ -1,50 +1,41 @@
 #!/usr/bin/env bash
-# setup-cron.sh — Install a cron job for cleanup-merged.sh
-# Usage: setup-cron.sh [--install] [--uninstall] [--status]
+# setup-cron.sh — Install a unified cron job that cleans up ALL registered projects
+# Usage: setup-cron.sh [--install] [--uninstall] [--status] [--add <project-root>] [--remove <project-root>] [--list]
+#
+# Projects are registered in ~/.agent-swarm-dev/.swarm-projects.list (one path per line)
+# The cron runs cleanup-merged.sh for each registered project.
 #
 # Default: --install
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-CLEANUP_SCRIPT="$SCRIPT_DIR/cleanup-merged.sh"
-CRON_TAG="# agent-swarm-dev cleanup"
+REGISTRY_DIR="$HOME/.agent-swarm-dev"
+PROJECT_LIST="$REGISTRY_DIR/.swarm-projects.list"
+CRON_TAG="# agent-swarm-dev unified cleanup"
+CRON_SCHEDULE="${CRON_SCHEDULE:-*/5 * * * *}"
 
-# Detect project root
-detect_project_root() {
-  if [ -n "${SWARM_PROJECT_ROOT:-}" ]; then
-    echo "$SWARM_PROJECT_ROOT"
-  else
-    # Try to find git repo from script location
-    local dir="$SWARM_DIR"
-    while [ "$dir" != "/" ]; do
-      if [ -d "$dir/.git" ]; then
-        echo "$dir"
-        return
-      fi
-      dir="$(dirname "$dir")"
-    done
-    echo "Error: Cannot find git repo. Set SWARM_PROJECT_ROOT env variable."
-    exit 1
-  fi
-}
+mkdir -p "$REGISTRY_DIR"
 
-CRON_MINUTES="${CRON_MINUTES:-*/5}"
-CRON_HOUR="${CRON_HOUR:-2}"
-
-crontab_line="$CRON_MINUTES $CRON_HOUR * * * SWARM_PROJECT_ROOT=\"$(detect_project_root)\" $CLEANUP_SCRIPT >> \"$SWARM_DIR/.swarm-cleanup.log\" 2>&1 $CRON_TAG"
+# Build crontab line
+crontab_line="$CRON_SCHEDULE SWARM_DIR=\"$SWARM_DIR\" PROJECT_LIST=\"$PROJECT_LIST\" $SCRIPT_DIR/cleanup-merged.sh --all >> \"$REGISTRY_DIR/.swarm-cleanup.log\" 2>&1 $CRON_TAG"
 
 show_status() {
-  echo "=== agent-swarm-dev cleanup cron ==="
+  echo "=== agent-swarm-dev unified cleanup cron ==="
   if crontab -l 2>/dev/null | grep -q "$CRON_TAG"; then
     echo "Status: INSTALLED"
-    echo "Schedule: $CRON_HOUR:$CRON_MINUTES daily"
-    echo "Script:   $CLEANUP_SCRIPT"
+    echo "Schedule: $CRON_SCHEDULE"
+    echo "Registry: $PROJECT_LIST"
+    echo "Log file: $REGISTRY_DIR/.swarm-cleanup.log"
     echo ""
-    echo "Crontab entry:"
-    crontab -l 2>/dev/null | grep "$CRON_TAG"
-    echo ""
-    echo "Log file: $SWARM_DIR/.swarm-cleanup.log"
+    echo "Registered projects:"
+    if [ -f "$PROJECT_LIST" ]; then
+      while IFS= read -r line; do
+        [ -n "$line" ] && echo "  - $line"
+      done < "$PROJECT_LIST"
+    else
+      echo "  (none)"
+    fi
   else
     echo "Status: NOT INSTALLED"
   fi
@@ -57,18 +48,11 @@ install_cron() {
     exit 0
   fi
 
-  if [ ! -x "$CLEANUP_SCRIPT" ]; then
-    echo "Error: cleanup-merged.sh not found or not executable at:"
-    echo "  $CLEANUP_SCRIPT"
-    exit 1
-  fi
-
-  # Add to crontab
   (crontab -l 2>/dev/null || true; echo "$crontab_line") | crontab -
   echo "✅ Cron job installed."
-  echo "  Schedule: $CRON_HOUR:$CRON_MINUTES daily"
-  echo "  Script:   $CLEANUP_SCRIPT"
-  echo "  Log:      $SWARM_DIR/.swarm-cleanup.log"
+  echo "  Schedule: $CRON_SCHEDULE"
+  echo "  Registry: $PROJECT_LIST"
+  echo "  Log:      $REGISTRY_DIR/.swarm-cleanup.log"
   echo ""
   echo "Edit schedule with: crontab -e"
   echo "Remove with:        $0 --uninstall"
@@ -84,6 +68,56 @@ uninstall_cron() {
   echo "✅ Cron job removed."
 }
 
+add_project() {
+  local path="$1"
+  # Resolve to absolute
+  case "$path" in
+    /*) ;;
+    *) path="$(cd "$path" 2>/dev/null && pwd 2>/dev/null || echo "$path")" ;;
+  esac
+
+  if [ -f "$PROJECT_LIST" ] && grep -qFx "$path" "$PROJECT_LIST" 2>/dev/null; then
+    echo "Project already registered: $path"
+    exit 0
+  fi
+
+  echo "$path" >> "$PROJECT_LIST"
+  echo "✅ Project registered: $path"
+}
+
+remove_project() {
+  local path="$1"
+  case "$path" in
+    /*) ;;
+    *) path="$(cd "$path" 2>/dev/null && pwd 2>/dev/null || echo "$path")" ;;
+  esac
+
+  if [ ! -f "$PROJECT_LIST" ]; then
+    echo "No projects registered."
+    exit 0
+  fi
+
+  if ! grep -qFx "$path" "$PROJECT_LIST" 2>/dev/null; then
+    echo "Project not found: $path"
+    exit 0
+  fi
+
+  local tmp
+  tmp=$(mktemp)
+  grep -vFx "$path" "$PROJECT_LIST" > "$tmp" || true
+  mv "$tmp" "$PROJECT_LIST"
+  echo "✅ Project removed: $path"
+}
+
+list_projects() {
+  echo "=== Registered projects ==="
+  if [ -f "$PROJECT_LIST" ] && [ -s "$PROJECT_LIST" ]; then
+    cat "$PROJECT_LIST"
+  else
+    echo "(none)"
+  fi
+}
+
 # Parse args
 case "${1:---install}" in
   --install|install)
@@ -95,13 +129,29 @@ case "${1:---install}" in
   --status|status)
     show_status
     ;;
+  --add)
+    [ -z "${2:-}" ] && { echo "Usage: $0 --add <project-root>"; exit 1; }
+    add_project "$2"
+    ;;
+  --remove)
+    [ -z "${2:-}" ] && { echo "Usage: $0 --remove <project-root>"; exit 1; }
+    remove_project "$2"
+    ;;
+  --list)
+    list_projects
+    ;;
   *)
-    echo "Usage: $0 [--install] [--uninstall] [--status]"
+    echo "Usage: $0 [--install] [--uninstall] [--status] [--add <root>] [--remove <root>] [--list]"
     echo ""
     echo "Commands:"
-    echo "  --install    Install daily cleanup cron (default)"
+    echo "  --install    Install unified cleanup cron (default)"
     echo "  --uninstall  Remove cleanup cron"
-    echo "  --status     Show cron status"
+    echo "  --status     Show cron + project status"
+    echo "  --add <root> Register a project for cleanup"
+    echo "  --remove <root> Unregister a project"
+    echo "  --list       List registered projects"
+    echo ""
+    echo "Registry file: $PROJECT_LIST"
     exit 1
     ;;
 esac

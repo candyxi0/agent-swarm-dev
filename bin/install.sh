@@ -67,7 +67,7 @@ echo ""
 
 # --- Force install cron ---
 echo "Installing cron job for merged branch cleanup..."
-CRON_MINUTES="*/5" CRON_HOUR="2" "$SWARM_DIR/bin/setup-cron.sh" --install 2>/dev/null || echo "(cron install failed, you can install manually later)"
+CRON_SCHEDULE="*/5 * * * *" "$SWARM_DIR/bin/setup-cron.sh" --install 2>/dev/null || echo "(cron install failed, you can install manually later)"
 PROJECT_DIR="$(pwd)"
 "$SWARM_DIR/bin/setup-cron.sh" --add "$PROJECT_DIR" 2>/dev/null || true
 
