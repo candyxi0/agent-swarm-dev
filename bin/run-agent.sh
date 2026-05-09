@@ -6,7 +6,7 @@
 #
 # Configuration: reads .agent-swarm*.env from current directory (project-local),
 # or falls back to <script-dir>/.agent-swarm.env for backward compatibility.
-# If no config exists, creates a default one on first run.
+# If no config exists, creates one interactively.
 
 set -euo pipefail
 
@@ -17,58 +17,67 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # resolves to ~/agent-swarm-dev/
 
 ##############################################################################
-# Auto-detect project config
-# Priority: SWARM_PROJECT_NAME env > project-local config > scan parents > swarm dir fallback
+# Check if current directory is a git repo; if not, clone one
 ##############################################################################
+if ! git rev-parse --git-dir &>/dev/null; then
+  echo "当前目录不是 git 仓库。"
+  echo -n "请输入 Git 仓库地址: "
+  read -r GIT_CLONE_URL
+  if [ -z "$GIT_CLONE_URL" ]; then
+    echo "错误: Git 仓库地址不能为空。"
+    exit 1
+  fi
+  echo "正在克隆仓库: $GIT_CLONE_URL"
+  git clone "$GIT_CLONE_URL" 2>&1 || {
+    echo "错误: 克隆仓库失败。"
+    exit 1
+  }
+  # cd into the cloned repo (strip .git suffix and get dirname)
+  CLONE_DIR="$(basename "$GIT_CLONE_URL" | sed 's/\.git$//')"
+  cd "$CLONE_DIR"
+  echo "已进入克隆的仓库: $(pwd)"
+  echo ""
+fi
+
+##############################################################################
+# Auto-detect project config
+# Priority: SWARM_PROJECT_NAME env > git remote name > project-local config > scan parents > swarm dir fallback
+##############################################################################
+derive_project_name_from_git() {
+  local remote_url
+  remote_url=$(git remote get-url origin 2>/dev/null || true)
+  if [ -n "$remote_url" ]; then
+    # Strip .git suffix
+    local name="${remote_url%.git}"
+    # Strip everything up to last slash
+    name="${name##*/}"
+    # Clean: keep only alphanumeric, dots, hyphens, underscores
+    name=$(echo "$name" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_.-')
+    if [ -n "$name" ]; then echo "$name"; return; fi
+  fi
+  # Fallback: basename of current directory
+  basename "$(pwd)" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_.-'
+}
+
 find_project_config() {
   local cwd="$(pwd)"
 
-  # 1) Explicit project name from env — check project root first, then swarm dir
+  # 0) Explicit project name from env
   if [ -n "${SWARM_PROJECT_NAME:-}" ]; then
     local cfg_name=".agent-swarm-${SWARM_PROJECT_NAME}.env"
     if [ -f "$cwd/$cfg_name" ]; then echo "$cwd/$cfg_name"; return; fi
-    if [ -f "$SWARM_DIR/$cfg_name" ]; then echo "$SWARM_DIR/$cfg_name"; return; fi
   fi
 
-  # 2) Look for project-local config in current directory
+  # 1) Auto-derived project name from git remote
+  local git_name
+  git_name=$(derive_project_name_from_git)
+  if [ -n "$git_name" ]; then
+    local cfg_name=".agent-swarm-${git_name}.env"
+    if [ -f "$cwd/$cfg_name" ]; then echo "$cwd/$cfg_name"; return; fi
+  fi
+
+  # 2) Fallback: plain project-local config
   if [ -f "$cwd/.agent-swarm.env" ]; then echo "$cwd/.agent-swarm.env"; return; fi
-  for cfg in "$cwd"/.agent-swarm-*.env; do
-    [ -f "$cfg" ] || continue
-    echo "$cfg"
-    return
-  done
-
-  # 3) Scan parent directories up to root (for nested worktrees)
-  local dir="$cwd"
-  while [ "$dir" != "/" ]; do
-    for cfg in "$dir"/.agent-swarm-*.env "$dir"/.agent-swarm.env; do
-      [ -f "$cfg" ] || continue
-      echo "$cfg"
-      return
-    done
-    dir="$(dirname "$dir")"
-  done
-
-  # 4) Fall back to swarm dir configs (backward compatible)
-  for cfg in "$SWARM_DIR"/.agent-swarm-*.env; do
-    [ -f "$cfg" ] || continue
-    local root
-    root=$(grep "^SWARM_PROJECT_ROOT=" "$cfg" 2>/dev/null | head -1 | cut -d= -f2- | sed 's/^"//;s/"$//' || true)
-    if [ -n "$root" ]; then
-      case "$root" in
-        /*) ;;
-        *) root="" ;;
-      esac
-      if [ -n "$root" ] && [[ "$cwd" == "$root"* ]]; then
-        echo "$cfg"
-        return
-      fi
-    fi
-  done
-  if [ -f "$SWARM_DIR/.agent-swarm.env" ]; then
-    echo "$SWARM_DIR/.agent-swarm.env"
-    return
-  fi
 
   echo ""
 }
@@ -76,71 +85,81 @@ find_project_config() {
 SWARM_CONFIG="$(find_project_config)"
 
 if [ -z "$SWARM_CONFIG" ]; then
-  echo "Error: No project configuration found."
-  echo "Run 'bash bin/install.sh' inside your project directory first."
-  exit 1
-fi
+  echo "NO_CONFIG_FOUND"
+  PROJECT_NAME="$(derive_project_name_from_git)"
+  echo ""
+  echo "未找到项目配置文件，开始创建 .agent-swarm-${PROJECT_NAME}.env"
+  echo ""
+  echo -n "Git repo path for agents (SWARM_PROJECT_ROOT) [$(pwd)]: "
+  read -r INPUT
+  SWARM_PROJECT_ROOT="${INPUT:-$(pwd)}"
+  case "$SWARM_PROJECT_ROOT" in
+    /*) ;;
+    *) SWARM_PROJECT_ROOT="$(cd "$SWARM_PROJECT_ROOT" 2>/dev/null && pwd 2>/dev/null || echo "$SWARM_PROJECT_ROOT")" ;;
+  esac
 
-##############################################################################
-# Load or create config
-##############################################################################
-if [ ! -f "$SWARM_CONFIG" ]; then
-  # Try to migrate from old .clawdbot/.env if it exists
-  OLD_ENV="${SWARM_MIGRATE_FROM:-/root/txl/my-project/.clawdbot/.env}"
+  echo -n "YUNXIAO_TOKEN: "
+  read -r YUNXIAO_TOKEN
+  YUNXIAO_TOKEN="${YUNXIAO_TOKEN:-}"
+  echo -n "YUNXIAO_ORG_ID: "
+  read -r YUNXIAO_ORG_ID
+  YUNXIAO_ORG_ID="${YUNXIAO_ORG_ID:-}"
+  echo -n "YUNXIAO_SPACE_ID: "
+  read -r YUNXIAO_SPACE_ID
+  YUNXIAO_SPACE_ID="${YUNXIAO_SPACE_ID:-}"
+  echo -n "YUNXIAO_REPO_ID: "
+  read -r YUNXIAO_REPO_ID
+  YUNXIAO_REPO_ID="${YUNXIAO_REPO_ID:-}"
 
-  # Extract known keys from old env or use empty defaults
-  _YUNXIAO_TOKEN=""
-  _YUNXIAO_ORG_ID=""
-  _YUNXIAO_SPACE_ID=""
-  _YUNXIAO_REPO_ID=""
-  _WECOM_WEBHOOK_URL=""
-  _GIT_TOKEN=""
-  _MAX_RETRIES=""
-  _CHECK_INTERVAL=""
-  MIGRATED_MSG=""
+  echo -n "WECOM_WEBHOOK_URL: "
+  read -r WECOM_WEBHOOK_URL
+  WECOM_WEBHOOK_URL="${WECOM_WEBHOOK_URL:-}"
 
-  if [ -f "$OLD_ENV" ]; then
-    _YUNXIAO_TOKEN=$(grep "^YUNXIAO_TOKEN=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _YUNXIAO_ORG_ID=$(grep "^YUNXIAO_ORG_ID=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _YUNXIAO_SPACE_ID=$(grep "^YUNXIAO_SPACE_ID=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _YUNXIAO_REPO_ID=$(grep "^YUNXIAO_REPO_ID=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _WECOM_WEBHOOK_URL=$(grep "^WECOM_WEBHOOK_URL=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _GIT_TOKEN=$(grep "^GIT_TOKEN=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _MAX_RETRIES=$(grep "^MAX_RETRIES=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    _CHECK_INTERVAL=$(grep "^CHECK_INTERVAL_MINUTES=" "$OLD_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)
-    MIGRATED_MSG="[agent-swarm] Migrated settings from $OLD_ENV"
-  fi
+  echo -n "GIT_AUTH_METHOD (token/ssh/none): "
+  read -r GIT_AUTH_METHOD
+  GIT_AUTH_METHOD="${GIT_AUTH_METHOD:-none}"
 
-  cat > "$SWARM_CONFIG" << EOF
-# agent-swarm-dev configuration
-# Edit these values for your project.
+  echo -n "GIT_TOKEN: "
+  read -r GIT_TOKEN
+  GIT_TOKEN="${GIT_TOKEN:-}"
 
-# Project root (the git repo where agents will create worktrees)
-SWARM_PROJECT_ROOT="\${SWARM_PROJECT_ROOT:-.}"
+  echo -n "GIT_SSH_KEY: "
+  read -r GIT_SSH_KEY
+  GIT_SSH_KEY="${GIT_SSH_KEY:-}"
 
-# YunXiao (云效) config — optional
-YUNXIAO_TOKEN="\${YUNXIAO_TOKEN:-$_YUNXIAO_TOKEN}"
-YUNXIAO_ORG_ID="\${YUNXIAO_ORG_ID:-$_YUNXIAO_ORG_ID}"
-YUNXIAO_SPACE_ID="\${YUNXIAO_SPACE_ID:-$_YUNXIAO_SPACE_ID}"
-YUNXIAO_REPO_ID="\${YUNXIAO_REPO_ID:-$_YUNXIAO_REPO_ID}"
+  echo -n "MAX_RETRIES [3]: "
+  read -r INPUT
+  MAX_RETRIES="${INPUT:-3}"
 
-# WeCom (企业微信) webhook for completion notifications
-WECOM_WEBHOOK_URL="\${WECOM_WEBHOOK_URL:-$_WECOM_WEBHOOK_URL}"
+  echo -n "CHECK_INTERVAL_MINUTES [2]: "
+  read -r INPUT
+  CHECK_INTERVAL_MINUTES="${INPUT:-2}"
 
-# Git push authentication: "ssh", "token", or "none"
-GIT_AUTH_METHOD="\${GIT_AUTH_METHOD:-token}"
-GIT_TOKEN="\${GIT_TOKEN:-$_GIT_TOKEN}"
-
-# Agent tuning
-MAX_RETRIES="\${MAX_RETRIES:-${_MAX_RETRIES:-3}}"
-CHECK_INTERVAL_MINUTES="\${CHECK_INTERVAL_MINUTES:-${_CHECK_INTERVAL:-2}}"
+  SWARM_CONFIG="$(pwd)/.agent-swarm-${PROJECT_NAME}.env"
+  cat > "$SWARM_CONFIG" <<EOF
+# agent-swarm-dev configuration — project: $PROJECT_NAME
+SWARM_PROJECT_ROOT="$SWARM_PROJECT_ROOT"
+YUNXIAO_TOKEN="$YUNXIAO_TOKEN"
+YUNXIAO_ORG_ID="$YUNXIAO_ORG_ID"
+YUNXIAO_SPACE_ID="$YUNXIAO_SPACE_ID"
+YUNXIAO_REPO_ID="$YUNXIAO_REPO_ID"
+WECOM_WEBHOOK_URL="$WECOM_WEBHOOK_URL"
+GIT_AUTH_METHOD="$GIT_AUTH_METHOD"
+GIT_TOKEN="$GIT_TOKEN"
+GIT_SSH_KEY="$GIT_SSH_KEY"
+MAX_RETRIES="$MAX_RETRIES"
+CHECK_INTERVAL_MINUTES="$CHECK_INTERVAL_MINUTES"
 EOF
-  echo "[agent-swarm] Created default config at $SWARM_CONFIG"
-  if [ -n "$MIGRATED_MSG" ]; then
-    echo "$MIGRATED_MSG"
-  fi
+
+  echo ""
+  echo "Config saved to $SWARM_CONFIG"
+  # Register project for cron cleanup
+  "$SWARM_DIR/bin/setup-cron.sh" --add "$SWARM_PROJECT_ROOT" 2>/dev/null || true
 fi
 
+##############################################################################
+# Load config
+##############################################################################
 source "$SWARM_CONFIG"
 
 ##############################################################################
@@ -277,8 +296,8 @@ BRANCH="$BRANCH_NAME"
 WORKTREE="$WORKTREE_PATH"
 WECOM_WEBHOOK_URL="${WECOM_WEBHOOK_URL:-}"
 PROJECT_ROOT="$PROJECT_ROOT"
-TASK_FILE="$SWARM_DIR/.swarm-active-tasks.json"
-LOG_FILE="$SWARM_DIR/.swarm-monitor.log"
+TASK_FILE="$PROJECT_ROOT/.swarm-active-tasks.json"
+LOG_FILE="$PROJECT_ROOT/.swarm-monitor.log"
 
 log() {
   echo "[\$(date '+%Y-%m-%d %H:%M:%S')] \$1" >> "\$LOG_FILE"
@@ -369,7 +388,7 @@ rm -f "$PROMPT_FILE"
 ##############################################################################
 # Record task
 ##############################################################################
-TASK_FILE="$SWARM_DIR/.swarm-active-tasks.json"
+TASK_FILE="$PROJECT_ROOT/.swarm-active-tasks.json"
 TIMESTAMP=$(date +%s%3N)
 
 if [[ ! -f "$TASK_FILE" ]]; then
