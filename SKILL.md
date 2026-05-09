@@ -67,6 +67,8 @@ All scripts are self-contained in this skill. No external project dependencies.
 
 ## SETUP (run first)
 
+### Step 1: Locate the skill directory
+
 ```bash
 # Derive the skill directory dynamically from the symlink location
 if [ -L "${CLAUDE_SKILL_DIR:-.}/SKILL.md" ]; then
@@ -83,24 +85,121 @@ else
   SWARM_DIR=""
 fi
 
-if [ -n "$SWARM_DIR" ] && [ -x "$SWARM_DIR/bin/run-agent.sh" ] && command -v jq &>/dev/null && command -v tmux &>/dev/null; then
-  echo "SWARM_DIR=$SWARM_DIR"
-  echo "SWARM_READY"
-else
+if [ -z "$SWARM_DIR" ] || [ ! -x "$SWARM_DIR/bin/run-agent.sh" ]; then
   echo "SWARM_NOT_FOUND"
+  echo "Tell the user to install first:"
+  echo '  cd /your/project && curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash'
+  # STOP — do not continue
+fi
+
+echo "SWARM_DIR=$SWARM_DIR"
+echo "SWARM_READY"
+```
+
+### Step 2: Detect git repo + config, create if needed
+
+If `SWARM_READY` above, run the following detection flow:
+
+```bash
+# Check if current directory is a git repo
+if git rev-parse --git-dir &>/dev/null; then
+  IS_GIT_REPO="yes"
+  PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+  # Derive project name from git remote
+  REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
+  if [ -n "$REMOTE_URL" ]; then
+    PROJECT_NAME="${REMOTE_URL%.git}"
+    PROJECT_NAME="${PROJECT_NAME##*/}"
+    PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_.-')
+  fi
+  if [ -z "$PROJECT_NAME" ]; then
+    PROJECT_NAME=$(basename "$PROJECT_ROOT" | tr ' ' '-' | tr -cd 'a-zA-Z0-9_.-')
+  fi
+else
+  IS_GIT_REPO="no"
+  PROJECT_ROOT=""
+  PROJECT_NAME=""
+fi
+
+echo "IS_GIT_REPO=$IS_GIT_REPO"
+echo "PROJECT_ROOT=$PROJECT_ROOT"
+echo "PROJECT_NAME=$PROJECT_NAME"
+```
+
+**If `IS_GIT_REPO=no`**: The current directory is not a git repository.
+1. Ask the user: "当前目录不是一个 git 仓库，请提供一个仓库地址（或指定本地已克隆的路径）"
+2. Use `git clone <url>` to clone the repo into the current directory
+3. Set `PROJECT_ROOT` to the newly cloned directory path and `cd` into it
+4. Derive `PROJECT_NAME` from the repo name as above
+
+**If `IS_GIT_REPO=yes`**: Check for existing config in the project root only:
+
+```bash
+CONFIG_FILE="$PROJECT_ROOT/.agent-swarm-${PROJECT_NAME}.env"
+if [ ! -f "$CONFIG_FILE" ]; then
+  CONFIG_FILE="$PROJECT_ROOT/.agent-swarm.env"
+fi
+
+if [ -f "$CONFIG_FILE" ]; then
+  echo "CONFIG_EXISTS=$CONFIG_FILE"
+else
+  echo "NO_CONFIG"
 fi
 ```
 
-If `SWARM_NOT_FOUND`: tell the user to install the skill:
+**If `CONFIG_EXISTS`**: Config found. Source it and proceed to Routing.
+
+**If `NO_CONFIG`**: No config found. Use `AskUserQuestion` to collect all config values from the user:
+
+1. Ask the user for each value using `AskUserQuestion` with "Other" option for free text:
+   - **Git 仓库路径** (`SWARM_PROJECT_ROOT`): default to `$PROJECT_ROOT`
+   - **Git 推送认证方式**: token / ssh / 跳过
+   - **GIT_TOKEN** (if token selected, optional)
+   - **GIT_SSH_KEY** (if ssh selected, optional)
+   - **企业微信 Webhook URL** (optional)
+   - **云效 Token** (optional, skip all YunXiao fields if empty)
+   - **云效 Org/Space/Repo ID** (only if Token provided)
+   - **最大重试次数**: default 3
+   - **检查间隔分钟数**: default 2
+
+2. After collecting all values, write the config file:
 
 ```bash
-cd /your/project
-curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
+cat > "$PROJECT_ROOT/.agent-swarm-${PROJECT_NAME}.env" << EOF
+# agent-swarm-dev configuration — project: $PROJECT_NAME
+SWARM_PROJECT_ROOT="$SWARM_PROJECT_ROOT"
+YUNXIAO_TOKEN="$YUNXIAO_TOKEN"
+YUNXIAO_ORG_ID="$YUNXIAO_ORG_ID"
+YUNXIAO_SPACE_ID="$YUNXIAO_SPACE_ID"
+YUNXIAO_REPO_ID="$YUNXIAO_REPO_ID"
+WECOM_WEBHOOK_URL="$WECOM_WEBHOOK_URL"
+GIT_AUTH_METHOD="$GIT_AUTH_METHOD"
+GIT_TOKEN="$GIT_TOKEN"
+GIT_SSH_KEY="$GIT_SSH_KEY"
+MAX_RETRIES="$MAX_RETRIES"
+CHECK_INTERVAL_MINUTES="$CHECK_INTERVAL_MINUTES"
+EOF
 ```
+
+3. Register project in unified cleanup registry and install cron if needed:
+
+```bash
+# Add project to unified project list
+"$SWARM_DIR/bin/setup-cron.sh" --add "$SWARM_PROJECT_ROOT"
+
+# Install unified cron if not already present
+"$SWARM_DIR/bin/setup-cron.sh" --install
+```
+
+This ensures every project shares a single cron job. The cron iterates all registered projects from `~/.agent-swarm-dev/.swarm-projects.list` and cleans up each one independently.
+
+4. Tell the user the config has been saved and proceed to Routing.
+
+After the config is created, proceed to Routing.
 
 ## Routing
 
-After SETUP above, determine what the user wants:
+After SETUP above (SWARM_DIR located, config created/verified), determine what the user wants:
 
 - **Check status / view agents** — if the user asks about agent status, active tasks, swarm status, or 查看状态/查看小蜜蜂:
   ```bash
@@ -120,19 +219,36 @@ After SETUP above, determine what the user wants:
   1. Ask for the list of tasks
   2. Write them to a JSON file and run `"$SWARM_DIR/bin/swarm.sh" <json-file>`
 
+- **New repo + workspace** — if the user wants to create a new code repository and start a fresh workspace:
+  1. Ask the user for:
+     - **Repository name** (becomes the directory name)
+     - **Git remote URL** (optional — skip to create a local-only repo)
+     - **Project description** (optional — used for initial README)
+  2. Create a new directory and initialize it as a git repo:
+     ```bash
+     mkdir -p "<repo-name>"
+     cd "<repo-name>"
+     git init
+     ```
+  3. If a remote URL was provided, set it:
+     ```bash
+     git remote add origin <remote-url>
+     ```
+  4. Derive `PROJECT_NAME` and `PROJECT_ROOT` from the new directory
+  5. Create a new config file `.agent-swarm-${PROJECT_NAME}.env` interactively using `AskUserQuestion` (same flow as NO_CONFIG in SETUP section)
+  6. Register the project in the cleanup registry:
+     ```bash
+     "$SWARM_DIR/bin/setup-cron.sh" --add "$SWARM_PROJECT_ROOT"
+     ```
+  7. Tell the user the new workspace is ready, then proceed to **Launch a new agent** flow
+
 - **Cleanup** — if the user wants to clean up merged branches:
   1. Run `"$SWARM_DIR/bin/cleanup-merged.sh" --dry-run` first
   2. Show results and ask before running without `--dry-run`
 
 If the user's intent doesn't match any of the above, show a brief summary of what this skill can do.
 
-First run auto-creates `$SWARM_DIR/.agent-swarm.env`. Edit it:
-
-```bash
-vim .agent-swarm.env          # project-local config (in your project root)
-# or
-vim .agent-swarm-<name>.env   # named config for this project
-```
+Project-local config is stored as `$PROJECT_ROOT/.agent-swarm-<name>.env` (or `.agent-swarm.env`).
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -142,13 +258,13 @@ vim .agent-swarm-<name>.env   # named config for this project
 | `YUNXIAO_SPACE_ID` | (empty) | 云效 space ID |
 | `YUNXIAO_REPO_ID` | (empty) | 云效 repo ID |
 | `WECOM_WEBHOOK_URL` | (empty) | 企业微信 webhook for notifications |
-| `GIT_AUTH_METHOD` | `token` | Git push auth: `token` (uses GIT_TOKEN), `ssh`, or `none` |
+| `GIT_AUTH_METHOD` | `none` | Git push auth: `token`, `ssh`, or `none` |
 | `GIT_TOKEN` | (empty) | Personal Access Token for git push (used when GIT_AUTH_METHOD=token) |
+| `GIT_SSH_KEY` | (empty) | SSH key path for git push (used when GIT_AUTH_METHOD=ssh) |
 | `MAX_RETRIES` | `3` | Max retry attempts |
 | `CHECK_INTERVAL_MINUTES` | `2` | Status check interval |
 
-**Minimal setup**: set `SWARM_PROJECT_ROOT` to your git repo path. If using token
-auth (default), also set `GIT_TOKEN`. Notifications and YunXiao are optional.
+**Minimal setup**: set `SWARM_PROJECT_ROOT` to your git repo path. Notifications and YunXiao are optional.
 
 ## Core Command
 
@@ -176,7 +292,7 @@ tmux kill-session -t swarm-feat-login
 
 ## What run-agent.sh Does
 
-1. **Loads** project-local config from `.agent-swarm.env` in current directory (falls back to `$SWARM_DIR/.agent-swarm.env`)
+1. **Loads** project-local config: `.agent-swarm-<name>.env` (project root, name from git remote) → `.agent-swarm.env` (current dir) → `$SWARM_DIR/` (fallback)
 2. **Resolves** project root from `SWARM_PROJECT_ROOT` (defaults to `.`)
 3. **Creates** git worktree at `$PROJECT_ROOT/.swarm-worktrees/<task-id>` on branch `swarm/<task-id>` from `main`
 4. **Fetches** latest `origin/main`
@@ -187,17 +303,17 @@ tmux kill-session -t swarm-feat-login
    - Checks for commits + push status
    - Sends WeCom notification (if configured)
    - Removes task from task file
-8. **Records** task in `$SWARM_DIR/.swarm-active-tasks.json`
+8. **Records** task in `$PROJECT_ROOT/.swarm-active-tasks.json`
 
 ## Task Files
 
-All state files live in `$SWARM_DIR`:
+All state files live in `$PROJECT_ROOT` (the git repo root):
 
 | File | Purpose |
 |------|---------|
-| `.agent-swarm.env` | Per-project config (auto-created) |
-| `.swarm-active-tasks.json` | Active task records |
-| `.swarm-monitor.log` | Monitor script log |
+| `.agent-swarm-<name>.env` | Per-project config |
+| `.swarm-active-tasks.json` | Active task records (per-project) |
+| `.swarm-monitor.log` | Monitor script log (per-project) |
 
 ### View Active Tasks
 
@@ -287,7 +403,7 @@ so you can see what happened.
 | worktree/branch exists | Reuse or pick a new task-id |
 | no new commits | Agent finished but didn't commit. Check tmux log. |
 | unpushed commits | Task record stays. Push manually if needed. |
-| no .git in project root | Set `SWARM_PROJECT_ROOT` in `.agent-swarm.env` |
+| no config found | Run the skill in your project directory; it will guide you through setup |
 | claude CLI missing | Install Claude Code or set `SWARM_AGENT_CMD` in config |
 
 ## Completion Flow
