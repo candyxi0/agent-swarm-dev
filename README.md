@@ -8,44 +8,16 @@ Dispatch from Claude Code, OpenClaw, Codex, or any AI assistant that supports sk
 
 ## 🚀 Quick Start
 
-Navigate to your project, one command to install:
+Navigate to your project and install:
 
-```bash
+```
 cd /your/project
 curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-This installs symlinks into `~/.openclaw/skills/` and/or `~/.claude/skills/` (whichever exist) and force-installs a cron job for auto cleanup.
+This installs symlinks into `~/.openclaw/skills/` and/or `~/.claude/skills/` (whichever exist) and sets up a cron job for auto cleanup.
 
-### 🎯 Launch an Agent
-
-Just tell your AI assistant:
-
-```
-launch a coding bee
-```
-
-Or run directly:
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-login "implement user login"
-```
-
-> **First run in a new project:** if no config exists, `run-agent.sh` will interactively guide you through creating one. If you're not in a git repo, it will ask you for a git URL to clone first.
-
-### 📋 Check Status
-
-Just tell your AI assistant:
-
-```
-check agents
-```
-
-or
-
-```
-swarm status
-```
+> **First run in a new project:** if no config exists, the skill will interactively guide you through creating one. If you're not in a git repo, it will ask you for a git URL to clone first.
 
 ## 🧠 How It Works
 
@@ -53,7 +25,7 @@ swarm status
 ┌─────────────────────────────────────────────────────────────────┐
 │                      🐝 agent-swarm-dev 🐝                      │
 │                                                                  │
-│  You run: bin/run-agent.sh feat-login "implement login"          │
+│  You say: "launch a coding bee to implement login"               │
 │       ↓                                                          │
 │  0. 📦  (first run) interactive config setup if no .env exists   │
 │  1. 🏗️  git worktree spins up an isolated workspace              │
@@ -66,24 +38,42 @@ swarm status
 
 Each agent is fully isolated: independent worktree + tmux session + git branch. No stepping on each other's toes~
 
-## 📁 Directory Structure
+## 🎮 What You Can Do
 
-```
-agent-swarm-dev/
-├── SKILL.md                    ← Claude Code skill document
-├── SKILL.md.tmpl               ← Multi-host template (OpenClaw/Codex)
-├── README.md                   ← This file (English)
-├── README_zh.md                ← Chinese version
-└── bin/
-    ├── install.sh              ← One-click install into any project 🛒
-    ├── run-agent.sh            ← Core: launch a single agent 🚀
-    ├── start-agent.sh          ← Launch wrapper with validation 📦
-    ├── stop-agent.sh           ← Safely stop an agent 🛑
-    ├── check-agents.sh         ← View all agent statuses 📋
-    ├── swarm.sh                ← Batch launch multiple agents 🐝🐝🐝
-    ├── cleanup-merged.sh       ← Clean up merged branches & worktrees 🧹
-    └── setup-cron.sh           ← One-click setup of scheduled cleanup ⏰
-```
+All interactions are through natural language — just tell your AI assistant:
+
+| What you want | What to say |
+|--------------|-------------|
+| Launch a coding agent | "launch a coding bee" or "启动小蜜蜂" |
+| Check agent status | "check agents" or "查看小蜜蜂状态" |
+| View registered projects | "list projects" or "查看项目列表" |
+| Stop an agent | "stop agent feat-login" or "停止agent" |
+| Launch multiple agents | "launch agents for these tasks..." or "批量启动agent" |
+| Clean up merged branches | "cleanup merged branches" or "清理分支" |
+
+The skill handles the rest — worktree creation, tmux session, background monitoring, notifications.
+
+## ⚙️ Configuration
+
+Config files live in your **project directory** as `.agent-swarm-<project-name>.env`. If no config exists, the skill will interactively prompt you to create one on first run.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SWARM_PROJECT_ROOT` | current dir | Git repo where agents create worktrees |
+| `WECOM_WEBHOOK_URL` | (empty) | WeCom webhook URL |
+| `GIT_AUTH_METHOD` | `none` | Git push auth: `token`, `ssh`, or `none` |
+| `GIT_TOKEN` | (empty) | Personal access token (for `token` auth) |
+| `GIT_SSH_KEY` | (empty) | SSH key path (for `ssh` auth) |
+| `YUNXIAO_TOKEN` | (empty) | 云效 API token |
+| `YUNXIAO_ORG_ID` | (empty) | 云效 org ID |
+| `YUNXIAO_SPACE_ID` | (empty) | 云效 space ID |
+| `YUNXIAO_REPO_ID` | (empty) | 云效 repo ID |
+| `MAX_RETRIES` | `3` | Max retry attempts |
+| `CHECK_INTERVAL_MINUTES` | `2` | Status check interval |
+
+> 💡 **Minimum setup**: just set `SWARM_PROJECT_ROOT` to your git repo path. Everything else is optional — agents will work fine without it.
+
+## 📁 Directory Structure
 
 Project-level files (auto-created):
 
@@ -95,143 +85,10 @@ your-project/
 └── .swarm-worktrees/               ← Isolated worktree directories
 ```
 
-## 🛠️ Installation
-
-One-liner — just navigate to your project and run:
-
-```bash
-cd /your/project
-curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
-```
-
-This detects platform directories (`~/.openclaw` and `~/.claude`), creates `skills/` subdirectories if needed, symlinks `SKILL.md` and `bin/` into each detected platform, and installs a cron job for merged branch cleanup. All files are symlinked — edit the cloned repo once, every project picks up the changes automatically.
-
-If neither `~/.openclaw` nor `~/.claude` exists, the script exits with a message indicating no supported AI platform was found.
-
-## ⚙️ Configuration
-
-Config files live in your **project directory** as `.agent-swarm-<project-name>.env`. If no config exists, `run-agent.sh` will interactively prompt you to create one on first run. All fields are free-text input — no menus or options.
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SWARM_PROJECT_ROOT` | current dir | Git repo where agents create worktrees |
-| `YUNXIAO_TOKEN` | (empty) | 云效 API token |
-| `YUNXIAO_ORG_ID` | (empty) | 云效 org ID |
-| `YUNXIAO_SPACE_ID` | (empty) | 云效 space ID |
-| `YUNXIAO_REPO_ID` | (empty) | 云效 repo ID |
-| `WECOM_WEBHOOK_URL` | (empty) | WeCom webhook URL |
-| `GIT_AUTH_METHOD` | `none` | Git push auth: `token`, `ssh`, or `none` |
-| `GIT_TOKEN` | (empty) | Personal access token (for `token` auth) |
-| `GIT_SSH_KEY` | (empty) | SSH key path (for `ssh` auth) |
-| `MAX_RETRIES` | `3` | Max retry attempts |
-| `CHECK_INTERVAL_MINUTES` | `2` | Status check interval |
-
-> 💡 **Minimum setup**: just set `SWARM_PROJECT_ROOT` to your git repo path. Everything else is optional — agents will work fine without it.
-
-## 🎮 Usage
-
-### Single Agent
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh <task-id> "<prompt>"
-```
-
-Example:
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-user-api "implement user CRUD API"
-```
-
-Watch in real-time:
-
-```bash
-tmux attach -t swarm-feat-user-api
-```
-
-Stop it:
-
-```bash
-tmux kill-session -t swarm-feat-user-api
-```
-
-### 🐝🐝🐝 Batch Parallel Agents
-
-```bash
-cat > /tmp/tasks.json << 'EOF'
-[
-  {"id": "feat-api",    "prompt": "implement user CRUD API"},
-  {"id": "feat-auth",   "prompt": "implement JWT auth middleware"},
-  {"id": "feat-db",     "prompt": "implement database models and migrations"}
-]
-EOF
-
-./agent-swarm-dev/bin/swarm.sh /tmp/tasks.json
-```
-
-All agents launch in parallel, each in its own worktree. No interference~
-
-### 🛑 Stop an Agent
-
-```bash
-./agent-swarm-dev/bin/stop-agent.sh <task-id>
-```
-
-Terminates the tmux session, updates task status to `stopped` (record preserved for tracing).
-
-### 📋 Check All Agent Statuses
-
-```bash
-./agent-swarm-dev/bin/check-agents.sh
-```
-
-Shows all active tasks, tmux sessions, and latest monitor logs.
-
-### 🧹 Clean Up Merged Branches
-
-After an agent pushes its branch is preserved (so you can create an MR). Once merged, use this to sweep up:
-
-```bash
-# Preview what would be cleaned
-./agent-swarm-dev/bin/cleanup-merged.sh --dry-run
-
-# Actually do it
-./agent-swarm-dev/bin/cleanup-merged.sh
-```
-
-Scans all `swarm/*` branches and cleans up merged ones — branches, worktrees, and task records in one go~
-
-### ⏰ Scheduled Cleanup
-
-The install script automatically sets up a cron job that runs every 5 minutes to clean merged branches across all registered projects:
-
-```bash
-# Install cron (defaults to every 5 minutes)
-./agent-swarm-dev/bin/setup-cron.sh --install
-
-# Uninstall
-./agent-swarm-dev/bin/setup-cron.sh --uninstall
-
-# Check status
-./agent-swarm-dev/bin/setup-cron.sh --status
-```
-
-Projects are auto-registered when `run-agent.sh` creates a config file. Cleanup logs land in `~/.agent-swarm-dev/.swarm-cleanup.log`.
-
-## 📦 Dependencies
-
-- `git` — for worktree isolation
-- `tmux` — for session management
-- `jq` — for JSON task tracking
-- `claude` (Claude Code CLI) — the coding agent
-
-```bash
-apt-get install -y jq tmux
-```
-
 ## 🔄 Task Lifecycle
 
 ```
-🚀 Run run-agent.sh
+🚀 You ask to launch an agent
     ↓
 📦  (first run) interactive config creation
     ↓
@@ -239,7 +96,7 @@ apt-get install -y jq tmux
     ↓
 📺  Create tmux session (swarm-<task-id>)
     ↓
-🤖  claude --print codes inside
+🤖  Claude Code codes inside
     ↓
 📝  git commit + git push
     ↓
@@ -279,12 +136,14 @@ Each agent receives these constraints at startup:
 
 ## 🔄 Updating
 
-```bash
-cd ~/agent-swarm-dev
-git pull
-```
+Just pull the repo and all projects instantly pick up the changes via symlinks~
 
-That's it. All projects instantly pick up the changes via symlinks~
+## 📦 Dependencies
+
+- `git` — for worktree isolation
+- `tmux` — for session management
+- `jq` — for JSON task tracking
+- `claude` (Claude Code CLI) — the coding agent
 
 ## ❓ Troubleshooting
 
@@ -294,28 +153,7 @@ That's it. All projects instantly pick up the changes via symlinks~
 | `jq not found` | `apt-get install -y jq` |
 | `tmux not found` | `apt-get install -y tmux` |
 | `claude not found` | Install Claude Code CLI |
-| Agent already running | `tmux attach -t swarm-<id>` to watch, or `stop-agent.sh <id>` to kill |
-| Worktree/branch already exists | Pick a different task-id, or `git worktree remove` manually |
+| Agent already running | Ask your AI assistant to check status or stop the agent |
+| Worktree/branch already exists | Pick a different task-id, or ask to clean up merged branches |
 | No commits after finish | Check monitor log: look for `.swarm-monitor.log` in project root |
-| Commits exist but not pushed | Task record stays; push manually or check why agent failed to push |
-| No .git found | `run-agent.sh` will prompt you to clone a repo, or set `SWARM_PROJECT_ROOT` in config |
-| No config found | `run-agent.sh` interactively creates `.agent-swarm-<project>.env` on first run |
-
-## 📝 Monitor Log
-
-All events are recorded in `.swarm-monitor.log` (in the **project root**):
-
-```bash
-# Watch live
-tail -f /your/project/.swarm-monitor.log
-
-# Recent entries
-tail -20 /your/project/.swarm-monitor.log
-```
-
-Log includes:
-- Monitor start/stop times ⏱️
-- Agent session end detection 🔍
-- Git commit & push check results 📊
-- WeCom notification delivery status 📢
-- Task cleanup status 🧹
+| No config found | The skill will interactively guide you through creating one on first run |

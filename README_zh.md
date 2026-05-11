@@ -10,36 +10,14 @@
 
 进入你的项目，一行命令搞定安装：
 
-```bash
+```
 cd /你的项目
 curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
 ```
 
-安装脚本会自动检测 `~/.openclaw` 和 `~/.claude` 目录，创建 skills 软链，并强制安装 cron 定时清理任务。
+安装脚本会自动检测 `~/.openclaw` 和 `~/.claude` 目录，创建 skills 软链，并设置 cron 定时清理任务。
 
-### 🎯 启动 Agent
-
-直接跟你的 AI 助手说：
-
-```
-启动小蜜蜂
-```
-
-或者直接运行：
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-login "实现用户登录功能"
-```
-
-> **首次使用：** 如果项目下没有配置文件，`run-agent.sh` 会自动进入交互式引导，引导你创建配置。如果当前目录不是 git 仓库，还会先让你输入 git 地址进行克隆。
-
-### 📋 查看状态
-
-直接跟你的 AI 助手说：
-
-```
-查看小蜜蜂状态
-```
+> **首次使用：** 如果项目下没有配置文件，skill 会自动进入交互式引导，帮你创建配置。如果当前目录不是 git 仓库，还会先让你输入 git 地址进行克隆。
 
 ## 🧠 工作原理
 
@@ -47,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 ┌─────────────────────────────────────────────────────────────────┐
 │                      🐝 agent-swarm-dev 🐝                      │
 │                                                                  │
-│  你运行: bin/run-agent.sh feat-login "实现登录功能"               │
+│  你说: "启动小蜜蜂，实现登录功能"                                   │
 │       ↓                                                          │
 │  0. 📦  (首次运行) 交互式创建配置文件                              │
 │  1. 🏗️  git worktree 变出一个独立小窝                            │
@@ -60,24 +38,42 @@ curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/i
 
 每个 Agent 都有自己独立的小天地：独立 worktree + 独立 tmux 会话 + 独立 git 分支，各干各的，互不打扰~
 
-## 📁 目录结构
+## 🎮 你可以做什么
 
-```
-agent-swarm-dev/
-├── SKILL.md                    ← Claude Code 的 skill 文档
-├── SKILL.md.tmpl               ← 多宿主模板（生成 OpenClaw/Codex 版本）
-├── README.md                   ← 英文版说明
-├── README_zh.md                ← 中文版说明（就是本文件啦）
-└── bin/
-    ├── install.sh              ← 一键安装到任意项目 🛒
-    ├── run-agent.sh            ← 核心脚本：启动单个 agent 🚀
-    ├── start-agent.sh          ← 带参数校验的启动包装器 📦
-    ├── stop-agent.sh           ← 安全停止 agent 🛑
-    ├── check-agents.sh         ← 查看所有 agent 状态 📋
-    ├── swarm.sh                ← 批量并行启动多个 agent 🐝🐝🐝
-    ├── cleanup-merged.sh       ← 清理已合并的分支和 worktree 🧹
-    └── setup-cron.sh           ← 一键配置定时清理任务 ⏰
-```
+所有交互都通过自然语言完成 — 直接跟你的 AI 助手说：
+
+| 你想做什么 | 怎么说 |
+|-----------|--------|
+| 启动编码 Agent | "启动小蜜蜂" 或 "launch a coding bee" |
+| 查看 Agent 状态 | "查看小蜜蜂状态" 或 "check agents" |
+| 查看已注册项目 | "查看项目列表" 或 "list projects" |
+| 停止 Agent | "停止 agent feat-login" 或 "stop agent" |
+| 批量启动 Agent | "批量启动agent，做这些任务..." 或 "launch multiple agents" |
+| 清理已合并分支 | "清理分支" 或 "cleanup merged branches" |
+
+剩下的交给 skill — 自动创建 worktree、启动 tmux 会话、后台监控、发送通知。
+
+## ⚙️ 配置说明
+
+配置文件位于**你的项目目录下**，命名为 `.agent-swarm-<项目名>.env`。如果配置文件不存在，skill 会在首次运行时交互式引导创建，所有字段均可留空。
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SWARM_PROJECT_ROOT` | 当前目录 | Agent 创建 worktree 的 git 仓库路径 |
+| `WECOM_WEBHOOK_URL` | (空) | 企业微信机器人 Webhook 地址 |
+| `GIT_AUTH_METHOD` | `none` | Git 推送认证方式：`token`、`ssh` 或 `none` |
+| `GIT_TOKEN` | (空) | Personal Access Token（token 认证用） |
+| `GIT_SSH_KEY` | (空) | SSH 密钥路径（ssh 认证用） |
+| `YUNXIAO_TOKEN` | (空) | 云效 API token |
+| `YUNXIAO_ORG_ID` | (空) | 云效组织 ID |
+| `YUNXIAO_SPACE_ID` | (空) | 云效空间 ID |
+| `YUNXIAO_REPO_ID` | (空) | 云效仓库 ID |
+| `MAX_RETRIES` | `3` | 最大重试次数 |
+| `CHECK_INTERVAL_MINUTES` | `2` | 状态检查间隔（分钟） |
+
+> 💡 **最小配置**：只需设置 `SWARM_PROJECT_ROOT` 指向你的 git 仓库即可。云效和企微通知都是可选的，不影响 Agent 正常干活。
+
+## 📁 目录结构
 
 项目级别文件（自动创建）：
 
@@ -89,147 +85,10 @@ agent-swarm-dev/
 └── .swarm-worktrees/               ← 隔离的 worktree 目录
 ```
 
-## 🛠️ 安装方式
-
-进入你的项目目录，一行命令搞定：
-
-```bash
-cd /你的项目
-curl -fsSL https://raw.githubusercontent.com/candyxi0/agent-swarm-dev/main/bin/install.sh | bash
-```
-
-安装脚本会：
-1. 检测 `~/.openclaw` 和 `~/.claude` 目录（两者都支持安装）
-2. 自动创建 `skills/` 子目录（如不存在）
-3. 将 `SKILL.md` 和 `bin/` 软链到各平台的 skills 目录
-4. 强制安装 cron 定时清理任务
-
-如果 `~/.openclaw` 和 `~/.claude` 都不存在，脚本会提示不支持的 AI 助手并退出。所有文件均为软链，改一次代码，所有项目跟着自动更新~
-
-## ⚙️ 配置说明
-
-配置文件位于**你的项目目录下**，命名为 `.agent-swarm-<项目名>.env`。如果配置文件不存在，`run-agent.sh` 会在首次运行时交互式引导创建，所有字段均为自由输入（无菜单选项），允许留空。
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `SWARM_PROJECT_ROOT` | 当前目录 | Agent 创建 worktree 的 git 仓库路径 |
-| `YUNXIAO_TOKEN` | (空) | 云效 API token |
-| `YUNXIAO_ORG_ID` | (空) | 云效组织 ID |
-| `YUNXIAO_SPACE_ID` | (空) | 云效空间 ID |
-| `YUNXIAO_REPO_ID` | (空) | 云效仓库 ID |
-| `WECOM_WEBHOOK_URL` | (空) | 企业微信机器人 Webhook 地址 |
-| `GIT_AUTH_METHOD` | `none` | Git 推送认证方式：`token`、`ssh` 或 `none` |
-| `GIT_TOKEN` | (空) | Personal Access Token（token 认证用） |
-| `GIT_SSH_KEY` | (空) | SSH 密钥路径（ssh 认证用） |
-| `MAX_RETRIES` | `3` | 最大重试次数 |
-| `CHECK_INTERVAL_MINUTES` | `2` | 状态检查间隔（分钟） |
-
-> 💡 **最小配置**：只需设置 `SWARM_PROJECT_ROOT` 指向你的 git 仓库即可。云效和企微通知都是可选的，不影响 Agent 正常干活。
-
-## 🎮 使用方法
-
-### 单个 Agent
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh <task-id> "<任务描述>"
-```
-
-举个例子：
-
-```bash
-./agent-swarm-dev/bin/run-agent.sh feat-user-api "实现用户CRUD API"
-```
-
-实时盯着看：
-
-```bash
-tmux attach -t swarm-feat-user-api
-```
-
-停下来：
-
-```bash
-tmux kill-session -t swarm-feat-user-api
-```
-
-### 🐝🐝🐝 批量并行 Agent
-
-```bash
-cat > /tmp/tasks.json << 'EOF'
-[
-  {"id": "feat-api",    "prompt": "实现用户CRUD API"},
-  {"id": "feat-auth",   "prompt": "实现JWT认证中间件"},
-  {"id": "feat-db",     "prompt": "实现数据库模型和迁移"}
-]
-EOF
-
-./agent-swarm-dev/bin/swarm.sh /tmp/tasks.json
-```
-
-所有 Agent 同时开工，各自有自己的 worktree 和 tmux 会话，互不干扰~
-
-### 🛑 停止 Agent
-
-```bash
-./agent-swarm-dev/bin/stop-agent.sh <task-id>
-```
-
-终止 tmux 会话，任务状态更新为 `stopped`（记录保留，方便追溯）。
-
-### 📋 查看所有 Agent 状态
-
-```bash
-./agent-swarm-dev/bin/check-agents.sh
-```
-
-显示所有活跃任务、tmux 会话列表、最新监控日志。
-
-### 🧹 清理已合并的分支
-
-Agent 推完代码后分支会保留（方便你创建 MR）。MR 合并后可以用这个脚本自动打扫：
-
-```bash
-# 先预览一下要清理什么
-./agent-swarm-dev/bin/cleanup-merged.sh --dry-run
-
-# 实际执行
-./agent-swarm-dev/bin/cleanup-merged.sh
-```
-
-自动扫描所有 `swarm/*` 分支，把已经合并到 main 的分支、worktree 和任务记录一并清理掉~
-
-### ⏰ 定时清理
-
-安装脚本会自动设置 cron 定时任务，每 5 分钟自动清扫所有已注册项目的已合并分支：
-
-```bash
-# 安装定时任务（默认每 5 分钟）
-./agent-swarm-dev/bin/setup-cron.sh --install
-
-# 卸载
-./agent-swarm-dev/bin/setup-cron.sh --uninstall
-
-# 查看当前状态
-./agent-swarm-dev/bin/setup-cron.sh --status
-```
-
-项目会在 `run-agent.sh` 创建配置文件时自动注册。清理日志位于 `~/.agent-swarm-dev/.swarm-cleanup.log`，随时可以翻看~
-
-## 📦 依赖项
-
-- `git` — 用于 worktree 隔离
-- `tmux` — 用于会话管理
-- `jq` — 用于 JSON 任务追踪
-- `claude`（Claude Code CLI）— 编码 Agent
-
-```bash
-apt-get install -y jq tmux
-```
-
 ## 🔄 任务生命周期
 
 ```
-🚀 运行 run-agent.sh
+🚀 你说要启动一个 agent
     ↓
 📦  (首次运行) 交互式创建配置文件
     ↓
@@ -237,7 +96,7 @@ apt-get install -y jq tmux
     ↓
 📺 创建 tmux 会话（swarm-<task-id>）
     ↓
-🤖 claude --print 在会话内编码
+🤖 Claude Code 在会话内编码
     ↓
 📝 git commit + git push
     ↓
@@ -277,12 +136,14 @@ apt-get install -y jq tmux
 
 ## 🔄 更新
 
-```bash
-cd ~/agent-swarm-dev
-git pull
-```
+拉取仓库即可，所有项目通过符号链接自动获取最新版本~
 
-就这样。所有项目通过符号链接自动获取最新版本~
+## 📦 依赖项
+
+- `git` — 用于 worktree 隔离
+- `tmux` — 用于会话管理
+- `jq` — 用于 JSON 任务追踪
+- `claude`（Claude Code CLI）— 编码 Agent
 
 ## ❓ 常见问题
 
@@ -292,28 +153,7 @@ git pull
 | `jq not found` | `apt-get install -y jq` |
 | `tmux not found` | `apt-get install -y tmux` |
 | `claude not found` | 安装 Claude Code CLI |
-| Agent 已在运行 | `tmux attach -t swarm-<id>` 看进度，或 `stop-agent.sh <id>` 停止 |
-| worktree/分支已存在 | 换个 task-id，或手动 `git worktree remove` 清理 |
+| Agent 已在运行 | 跟 AI 助手说查看状态或停止该 agent |
+| worktree/分支已存在 | 换个 task-id，或者说清理已合并分支 |
 | 完成后没有新提交 | 查看监控日志：在项目根目录找 `.swarm-monitor.log` |
-| 有提交但未推送 | 任务记录会保留，手动 push 或检查 agent 为何推送失败 |
-| 找不到 .git | `run-agent.sh` 会引导你克隆仓库，或在配置中设置正确的 `SWARM_PROJECT_ROOT` |
-| 没有配置文件 | `run-agent.sh` 首次运行会交互式引导创建 `.agent-swarm-<项目>.env` |
-
-## 📝 监控日志
-
-所有事件记录在 `.swarm-monitor.log`（位于**项目根目录**）：
-
-```bash
-# 实时盯着看
-tail -f /你的项目/.swarm-monitor.log
-
-# 翻翻最近的记录
-tail -20 /你的项目/.swarm-monitor.log
-```
-
-日志内容包括：
-- 监控脚本启动/结束时间 ⏱️
-- Agent 会话结束检测 🔍
-- Git 提交和推送检查结果 📊
-- 企业微信通知发送状态 📢
-- 任务清理状态 🧹
+| 没有配置文件 | skill 首次运行会交互式引导创建 `.agent-swarm-<项目>.env` |
