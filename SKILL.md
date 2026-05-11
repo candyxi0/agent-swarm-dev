@@ -53,6 +53,13 @@ triggers:
   - 检查 agent 状态
   - agent 状态
   - 任务状态
+  - list projects
+  - show projects
+  - view projects
+  - project list
+  - 查看项目列表
+  - 项目列表
+  - 查看项目
 allowed-tools:
   - Bash
   - Read
@@ -70,19 +77,42 @@ All scripts are self-contained in this skill. No external project dependencies.
 ### Step 1: Locate the skill directory
 
 ```bash
-# Derive the skill directory dynamically from the symlink location
-if [ -L "${CLAUDE_SKILL_DIR:-.}/SKILL.md" ]; then
-  SWARM_DIR="$(cd "$CLAUDE_SKILL_DIR" && pwd)"
-elif [ -L ".openclaw/plugin-skills/agent-swarm-dev/SKILL.md" ]; then
-  SWARM_DIR="$(cd ".openclaw/plugin-skills/agent-swarm-dev" && pwd -P)"
-elif [ -L ".claude/skills/agent-swarm-dev/SKILL.md" ]; then
-  SWARM_DIR="$(cd ".claude/skills/agent-swarm-dev" && pwd -P)"
-elif [ -d "$HOME/.openclaw/plugin-skills/agent-swarm-dev" ]; then
-  SWARM_DIR="$(cd "$HOME/.openclaw/plugin-skills/agent-swarm-dev" && pwd -P)"
-elif [ -d "$HOME/.claude/skills/agent-swarm-dev" ]; then
-  SWARM_DIR="$(cd "$HOME/.claude/skills/agent-swarm-dev" && pwd -P)"
-else
-  SWARM_DIR=""
+CACHE_DIR="$HOME/.agent-swarm-dev"
+CACHE_FILE="$CACHE_DIR/.swarm-dir"
+SWARM_DIR=""
+
+# Fast path: read from cache
+if [ -f "$CACHE_FILE" ]; then
+  CACHED="$(cat "$CACHE_FILE")"
+  if [ -x "$CACHED/bin/run-agent.sh" ]; then
+    SWARM_DIR="$CACHED"
+  else
+    # Cache stale — clear it
+    rm -f "$CACHE_FILE"
+  fi
+fi
+
+# Slow path: 5-level lookup (only if cache miss)
+if [ -z "$SWARM_DIR" ]; then
+  if [ -L "${CLAUDE_SKILL_DIR:-.}/SKILL.md" ]; then
+    SWARM_DIR="$(cd "$CLAUDE_SKILL_DIR" && pwd)"
+  elif [ -L ".openclaw/plugin-skills/agent-swarm-dev/SKILL.md" ]; then
+    SWARM_DIR="$(cd ".openclaw/plugin-skills/agent-swarm-dev" && pwd -P)"
+  elif [ -L ".claude/skills/agent-swarm-dev/SKILL.md" ]; then
+    SWARM_DIR="$(cd ".claude/skills/agent-swarm-dev" && pwd -P)"
+  elif [ -d "$HOME/.openclaw/plugin-skills/agent-swarm-dev" ]; then
+    SWARM_DIR="$(cd "$HOME/.openclaw/plugin-skills/agent-swarm-dev" && pwd -P)"
+  elif [ -d "$HOME/.claude/skills/agent-swarm-dev" ]; then
+    SWARM_DIR="$(cd "$HOME/.claude/skills/agent-swarm-dev" && pwd -P)"
+  else
+    SWARM_DIR=""
+  fi
+
+  # Cache the result for next time
+  if [ -n "$SWARM_DIR" ] && [ -x "$SWARM_DIR/bin/run-agent.sh" ]; then
+    mkdir -p "$CACHE_DIR"
+    echo "$SWARM_DIR" > "$CACHE_FILE"
+  fi
 fi
 
 if [ -z "$SWARM_DIR" ] || [ ! -x "$SWARM_DIR/bin/run-agent.sh" ]; then
@@ -210,6 +240,12 @@ After SETUP above (SWARM_DIR located, config created/verified), determine what t
   "$SWARM_DIR/bin/check-agents.sh"
   ```
   Also show `jq '.' "$SWARM_DIR/.swarm-active-tasks.json"` if check-agents.sh fails.
+
+- **List projects** — if the user asks about registered projects, project list, or 查看项目/项目列表:
+  ```bash
+  "$SWARM_DIR/bin/setup-cron.sh" --list
+  ```
+  This reads from `~/.agent-swarm-dev/.swarm-projects.list`, which is the same registry used by the cleanup cron.
 
 - **Launch a new agent** — if the user wants to start a coding agent, create a task, or 启动agent/启动小蜜蜂:
   1. Ask the user for the task ID and what to implement (unless already provided)
