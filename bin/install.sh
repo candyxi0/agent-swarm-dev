@@ -38,8 +38,8 @@ INSTALLED=false
 
 # Check ~/.openclaw
 if [ -d "$HOME/.openclaw" ]; then
-  mkdir -p "$HOME/.openclaw/skills"
-  TARGET_DIR="$HOME/.openclaw/skills/agent-swarm-dev"
+  mkdir -p "$HOME/.openclaw/plugin-skills"
+  TARGET_DIR="$HOME/.openclaw/plugin-skills/agent-swarm-dev"
   mkdir -p "$TARGET_DIR"
   ln -sfn "$SWARM_DIR/SKILL.md" "$TARGET_DIR/SKILL.md"
   ln -sfn "$SWARM_DIR/bin" "$TARGET_DIR/bin"
