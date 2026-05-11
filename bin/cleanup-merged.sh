@@ -1,16 +1,51 @@
 #!/usr/bin/env bash
 # cleanup-merged.sh — Remove worktrees and branches for merged swarm tasks
-# Usage: cleanup-merged.sh [--dry-run]
+# Usage:
+#   cleanup-merged.sh                     # single project (auto-detect or SWARM_PROJECT_ROOT)
+#   cleanup-merged.sh --dry-run           # single project dry run
+#   cleanup-merged.sh --all               # iterate all registered projects from PROJECT_LIST
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SWARM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TASK_FILE="$SWARM_DIR/.swarm-active-tasks.json"
 
+ALL_MODE=false
 DRY_RUN=false
-if [ "${1:-}" = "--dry-run" ]; then
-  DRY_RUN=true
+
+for arg in "$@"; do
+  case "$arg" in
+    --all)     ALL_MODE=true ;;
+    --dry-run) DRY_RUN=true ;;
+  esac
+done
+
+if [ "$ALL_MODE" = true ]; then
+  # Unified mode: iterate all registered projects
+  if [ -z "${PROJECT_LIST:-}" ]; then
+    PROJECT_LIST="$HOME/.agent-swarm-dev/.swarm-projects.list"
+  fi
+  if [ ! -f "$PROJECT_LIST" ]; then
+    echo "No project registry found at $PROJECT_LIST"
+    exit 0
+  fi
+
+  TOTAL=0
+  while IFS= read -r project_root; do
+    [ -z "$project_root" ] && continue
+    [ ! -d "$project_root/.git" ] && { echo "Skip (not a git repo): $project_root"; continue; }
+    echo ""
+    echo ">>> Project: $project_root <<<"
+    SWARM_PROJECT_ROOT="$project_root" SWARM_DIR="$SWARM_DIR" "$0" --single $([ "$DRY_RUN" = true ] && echo "--dry-run")
+    TOTAL=$((TOTAL + $?))
+  done < "$PROJECT_LIST"
+  echo ""
+  echo "=== Done. $TOTAL project(s) processed. ==="
+  exit 0
 fi
+
+# ---- Single project cleanup ----
+
+TASK_FILE="$SWARM_DIR/.swarm-active-tasks.json"
 
 echo "=== Cleaning up merged swarm branches ==="
 echo ""
